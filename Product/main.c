@@ -5,6 +5,14 @@
 #include "CentralAcquisitionProxy.h"
 
 
+//vars
+#define MAX_NAME 256
+
+#include <stdint.h>
+void* PrintHashTable(void);
+
+
+
 typedef enum {
 	NOT_CONNECTED_WITH_CENTRAL_ACQUISITION, 
 	CONNECTED_WITH_CENTRAL_ACQUISITION
@@ -22,7 +30,6 @@ int main(int argc, char* argv[])
 		printf("the functionality that does not depend on that connection!\n");
 	}
 	
-	fcntl(0, F_SETFL, fcntl(0, F_GETFL) | O_NONBLOCK);   //non blocking standard input
 	 
 	char selectedPatient[MAX_PATIENTNAME_SIZE] = "JohnDoe";
 	(void) selectedPatient; // remove this line when you are doing something with selectedPatient
@@ -42,11 +49,20 @@ int main(int argc, char* argv[])
 		else {
 			switch (choice)
 			{
-			case MO_ADD_PATIENT:
-				// add here your add patient code
+			case MO_ADD_PATIENT:{
+			    char inputName[MAX_NAME];
+
+				printf("Patient name: ");
+				scanf("%s", inputName);
+				AddPatient(inputName);
+
 				break;
+				}
 			case MO_DELETE_PATIENT:
 				// add here your delete patient code
+				break;
+			case MO_SHOW_TABLE:
+				    PrintHashTable();
 				break;
 			case MO_SELECT_PATIENT:
 				// add here your select patient code

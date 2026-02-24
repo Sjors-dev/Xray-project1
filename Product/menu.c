@@ -8,6 +8,7 @@ static int getInt();
 static const char* MenuStrings[] = {
     "Add Patient",
     "Delete Patient",
+    "Show table",
     "Select Patient",
     "Select Examination Type", 
     "Quit"

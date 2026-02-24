@@ -14,6 +14,13 @@
 	Define here the data structure of your hash table
 */
 
+typedef struct Patient {
+    char name[256];
+    
+} Patient;
+
+extern Patient * hashTable[HASHTABLE_SIZE];
+
 /***************************************************************************************
  * Returns a number in the range [0, HASHTABLE_SIZE), i.e. the entry in the hash table
  * 

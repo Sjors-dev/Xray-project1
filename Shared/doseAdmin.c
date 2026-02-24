@@ -1,21 +1,38 @@
 #include "doseAdmin.h"
 #include "doseAdmin_internal.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdint.h>
+#include <stdbool.h>
 
+Patient* hashTable[HASHTABLE_SIZE]; // echte definitie
+void PrintHashTable(void);
+
+//hashen :))
 uint8_t hashFunction(char * patientName)
 {
-	// add here the code of your hash function
-	return 0;
+	int length = strlen(patientName);    
+	unsigned int hash_value = 0;
+
+    for (int i = 0; i < length; i++){
+        hash_value += patientName[i];
+        hash_value = ((hash_value * patientName[i]) + patientName[i]) % HASHTABLE_SIZE;
+    }
+
+    return hash_value;
 }
 
 void * getHashTable() 
 {
-	// add here the code that returns the entry to your hash table
-	return NULL;
+    return hashTable;
 }
 
 void CreatePatientDoseAdmin()
 {
-	 return;
+    for (int i = 0; i < HASHTABLE_SIZE; i++){
+        hashTable[i] = NULL;
+    }
 }
  
 void RemoveAllDataFromPatientDoseAdmin()
@@ -23,9 +40,45 @@ void RemoveAllDataFromPatientDoseAdmin()
 	 return;
 }
  
+void PrintHashTable()
+{
+    bool emptyBool = false;
+    printf("Table: \n");
+    for (int i = 0; i < HASHTABLE_SIZE; i++){
+        if (hashTable[i] == NULL){
+            if(emptyBool == false){
+                printf("\t%i ^\n ", i);
+                emptyBool = true;
+            }
+        }
+        else{
+            if(emptyBool == true){
+                printf("\t| \n");
+              
+            }
+            printf("\t%i\t%s\n", i, hashTable[i]->name);
+        }   
+    }
+}
+
+
 int8_t AddPatient(char * patientName)
 {
-	 return -1;
+    if (patientName == NULL) return -1;
+
+    uint8_t index = hashFunction(patientName);
+
+    if (hashTable[index] != NULL){
+        return -1; 
+    }
+
+    Patient *p = malloc(sizeof(Patient));
+    if (!p) return -1;
+
+    strcpy(p->name, patientName);
+
+    hashTable[index] = p;
+    return 0;
 }
 
 int8_t SelectPatient(char * patientName)
@@ -51,7 +104,14 @@ int8_t RemovePatient(char * patientName)
  
 int8_t IsPatientPresent(char * patientName)
 {
-	 return -1;
+    uint8_t index = hashFunction(patientName);
+
+    if (hashTable[index] != NULL &&
+        strcmp(hashTable[index]->name, patientName) == 0){
+        return 1;
+    }
+
+    return 0;
 }
 
 int8_t GetNumberOfMeasurements(char * patientName, 
