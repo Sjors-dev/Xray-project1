@@ -11,6 +11,8 @@
 #include <stdint.h>
 void* PrintHashTable(void);
 
+bool sendMessageToCentralAcquisition(const char* msg);
+
 
 
 typedef enum {
@@ -42,7 +44,7 @@ int main(int argc, char* argv[])
 			if (centralAcqConnectionState == CONNECTED_WITH_CENTRAL_ACQUISITION) {
 				uint32_t doseData;
 				if (getDoseDataFromCentralAcquisition(&doseData)) {
-					printf("Received dose: %d\n", doseData); // instead of this print call here the function that handles the received dose datawqt
+					//printf("Received dose: %d\n", doseData); // instead of this print call here the function that handles the received dose datawqt
 				}
 			}
 		}
@@ -51,11 +53,14 @@ int main(int argc, char* argv[])
 			{
 			case MO_ADD_PATIENT:{
 			    char inputName[MAX_NAME];
+				int inputAge;
 
 				printf("Patient name: ");
 				scanf("%s", inputName);
-				AddPatient(inputName);
-
+				printf("Patient age: ");
+				scanf("%d", &inputAge);
+				AddPatient(inputName, inputAge);
+				    sendMessageToCentralAcquisition("led");
 				break;
 				}
 			case MO_DELETE_PATIENT:
@@ -65,8 +70,22 @@ int main(int argc, char* argv[])
 				    PrintHashTable();
 				break;
 			case MO_SELECT_PATIENT:
-				// add here your select patient code
+			{
+				char inputName[MAX_NAME];
+
+				printf("Patient name: ");
+				scanf("%s", inputName);
+				Patient *tmp = SelectPatient(inputName);
+					if(tmp == NULL){
+						printf("Niks gevonden man");
+					}
+					else{
+						printf("Patient: %s gevonden \n", tmp->name);
+						printf("Leeftijd: %d", tmp->age);
+					}
+				
 				break;
+				}
 			case MO_SELECT_EXAMINATION_TYPE:
 			    if (centralAcqConnectionState == CONNECTED_WITH_CENTRAL_ACQUISITION) {	
 					// add here your select examination code

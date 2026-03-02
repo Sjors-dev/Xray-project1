@@ -16,6 +16,7 @@
 
 typedef struct Patient {
     char name[256];
+    int age;
     
 } Patient;
 

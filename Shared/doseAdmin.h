@@ -6,6 +6,7 @@
 
 #define MAX_PATIENTNAME_SIZE	(80)
 #define HASHTABLE_SIZE			(256)
+#include "doseAdmin_internal.h" // hier staat struct Patient, nodig voor output selectpatient
 
 
 /*************************************************************************************** 
@@ -34,7 +35,7 @@ void RemoveAllDataFromPatientDoseAdmin();
  * 
  * It is a precondition that patientName is not NULL and is \0 terminated
  */
-int8_t AddPatient(char * patientName);
+int8_t AddPatient(char * patientName, int patientAge);
 
 
 /***************************************************************************************
@@ -46,8 +47,7 @@ int8_t AddPatient(char * patientName);
  * 
  * It is a precondition that patientName is not NULL and is \0 terminated
  */
-int8_t SelectPatient(char * patientName);
-
+Patient* SelectPatient(char * patientName);
 
 typedef struct {
 	uint8_t   day;    // value in range [1, 31]

@@ -16,7 +16,7 @@ uint8_t hashFunction(char * patientName)
 	unsigned int hash_value = 0;
 
     for (int i = 0; i < length; i++){
-        hash_value += patientName[i];
+        hash_value = patientName[i];
         hash_value = ((hash_value * patientName[i]) + patientName[i]) % HASHTABLE_SIZE;
     }
 
@@ -62,28 +62,38 @@ void PrintHashTable()
 }
 
 
-int8_t AddPatient(char * patientName)
+int8_t AddPatient(char * patientName, int patientAge)
 {
     if (patientName == NULL) return -1;
 
     uint8_t index = hashFunction(patientName);
+    uint8_t startIndex = index;
 
-    if (hashTable[index] != NULL){
-        return -1; 
+    while (hashTable[index] != NULL) {
+        index = (index + 1) % HASHTABLE_SIZE; 
+        if (index == startIndex) return -1; // hele table vol :(
     }
 
     Patient *p = malloc(sizeof(Patient));
     if (!p) return -1;
 
     strcpy(p->name, patientName);
+    p->age = patientAge;
 
     hashTable[index] = p;
     return 0;
 }
 
-int8_t SelectPatient(char * patientName)
+
+//select een patient :)
+Patient* SelectPatient(char * patientName)
 {
-	 return -1;
+    int index = hashFunction(patientName);
+    if(hashTable[index] != NULL &&
+       strcmp(hashTable[index]->name, patientName) == 0){
+        return hashTable[index];
+    }
+    return NULL;
 }
  
 int8_t AddPatientDose(Date* date, uint16_t dose)

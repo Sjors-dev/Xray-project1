@@ -2,6 +2,10 @@
 #include "../../Interface_PatAdmin_CentralAcq/Protocol_PatientAdmin_CentralAcq.h"
 #include <string.h>
 
+
+bool onOff = false;
+
+
 typedef enum {
 	EV_CONNECT_MSG_RECEIVED, 
 	EV_DISCONNECT_MSG_RECEIVED, 
@@ -15,6 +19,7 @@ bool checkForMsgOnSerialPort(char msgArg[MAX_MSG_SIZE]);
 
 void setup() {
   Serial.begin(9600);
+  pinMode(A5, OUTPUT);
 }
 
 void loop() {
@@ -24,11 +29,29 @@ void loop() {
     static unsigned long timeOut = millis();
     static int doseCnt = 0;
     unsigned long curTime = millis();
-    if (curTime > timeOut) {
+ /*   if (curTime > timeOut) {
         Serial.print("$dose:"); Serial.print(doseCnt); Serial.println("#");
         timeOut = curTime + 5000;
         doseCnt++;
+        
+        
+
     }
+*/
+     char msg[MAX_MSG_SIZE];
+
+if (checkForMsgOnSerialPort(msg)) {
+    Serial.write(msg);
+    if (strcmp(msg, "led") == 0) {
+        Serial.write("led gelezen :)");
+        if (!onOff) {
+            digitalWrite(A5, HIGH);
+        } else {
+            digitalWrite(A5, LOW);
+        }
+        onOff = !onOff;
+    }
+}
 }
 
 typedef enum {

@@ -121,6 +121,10 @@ static bool setupSerialConnection()
 	return false;
 }
 
+bool sendMessageToCentralAcquisition(const char* msg) {
+    return writeMsgToSerialPort(msg);
+}
+
 static bool connect()
 {
 	char receivedMsg[MAX_MSG_SIZE];
