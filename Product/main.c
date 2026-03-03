@@ -4,55 +4,60 @@
 #include "doseAdmin.h"
 #include "CentralAcquisitionProxy.h"
 
-
-//vars
+// vars
 #define MAX_NAME 256
 
 #include <stdint.h>
-void* PrintHashTable(void);
+void *PrintHashTable(void);
 
-bool sendMessageToCentralAcquisition(const char* msg);
+bool sendMessageToCentralAcquisition(const char *msg);
 
-
-
-typedef enum {
-	NOT_CONNECTED_WITH_CENTRAL_ACQUISITION, 
+typedef enum
+{
+	NOT_CONNECTED_WITH_CENTRAL_ACQUISITION,
 	CONNECTED_WITH_CENTRAL_ACQUISITION
 } CENTRAL_ACQUISITION_CONNECTION_STATE;
 
 /*---------------------------------------------------------------*/
-int main(int argc, char* argv[])
+int main(int argc, char *argv[])
 {
 	static CENTRAL_ACQUISITION_CONNECTION_STATE centralAcqConnectionState = NOT_CONNECTED_WITH_CENTRAL_ACQUISITION;
-	if (connectWithCentralAcquisition()) {	
+	if (connectWithCentralAcquisition())
+	{
 		centralAcqConnectionState = CONNECTED_WITH_CENTRAL_ACQUISITION;
 	}
-	else {
+	else
+	{
 		printf("\n\nConnecting with CentralAcquisition Failed. No problem, you can continue with \n");
 		printf("the functionality that does not depend on that connection!\n");
 	}
-	
-	 
+
 	char selectedPatient[MAX_PATIENTNAME_SIZE] = "JohnDoe";
-	(void) selectedPatient; // remove this line when you are doing something with selectedPatient
+	(void)selectedPatient; // remove this line when you are doing something with selectedPatient
 	// add here the code that adds John Doe into the admin
-	
-	displayMenu();	
-	while (true) {  
-        MenuOptions choice = getMenuChoice();
-		if (choice == -1) {
-			if (centralAcqConnectionState == CONNECTED_WITH_CENTRAL_ACQUISITION) {
+
+	displayMenu();
+	while (true)
+	{
+		MenuOptions choice = getMenuChoice();
+		if (choice == -1)
+		{
+			if (centralAcqConnectionState == CONNECTED_WITH_CENTRAL_ACQUISITION)
+			{
 				uint32_t doseData;
-				if (getDoseDataFromCentralAcquisition(&doseData)) {
-					//printf("Received dose: %d\n", doseData); // instead of this print call here the function that handles the received dose datawqt
+				if (getDoseDataFromCentralAcquisition(&doseData))
+				{
+					// printf("Received dose: %d\n", doseData); // instead of this print call here the function that handles the received dose datawqt
 				}
 			}
 		}
-		else {
+		else
+		{
 			switch (choice)
 			{
-			case MO_ADD_PATIENT:{
-			    char inputName[MAX_NAME];
+			case MO_ADD_PATIENT:
+			{
+				char inputName[MAX_NAME];
 				int inputAge;
 
 				printf("Patient name: ");
@@ -60,14 +65,52 @@ int main(int argc, char* argv[])
 				printf("Patient age: ");
 				scanf("%d", &inputAge);
 				AddPatient(inputName, inputAge);
-				    sendMessageToCentralAcquisition("led");
 				break;
-				}
+			}
 			case MO_DELETE_PATIENT:
-				// add here your delete patient code
+			{
+				char inputName[MAX_NAME];
+				int inputChoise;
+
+				printf("Patient name to delete:");
+				scanf("%s", inputName);
+				Patient *tmp = SelectPatient(inputName);
+				if (tmp == NULL)
+				{
+					printf("patient not found, check spelling.");
+				}
+				else
+				{
+					printf("Are you sure you want to delete %s? \n Age: %d \n[0] Yes \n[1] No \n", tmp->name, tmp->age);
+					scanf("%d", &inputChoise);
+					if (inputChoise == 0)
+					{
+						RemovePatient(inputName);
+						tmp = SelectPatient(inputName);
+
+						if (tmp == NULL)
+						{
+							printf("Patient deleted successfully\n");
+						}
+						else
+						{
+							printf("Something went wrong.. Try again.\n");
+						}
+					}
+					else if (inputChoise == 1)
+					{
+						printf("Canceled deletion.\n");
+					}
+					else
+					{
+						printf("Input not recognised.\n");
+					}
+				}
+
 				break;
+			}
 			case MO_SHOW_TABLE:
-				    PrintHashTable();
+				PrintHashTable();
 				break;
 			case MO_SELECT_PATIENT:
 			{
@@ -76,26 +119,48 @@ int main(int argc, char* argv[])
 				printf("Patient name: ");
 				scanf("%s", inputName);
 				Patient *tmp = SelectPatient(inputName);
-					if(tmp == NULL){
-						printf("Niks gevonden man");
-					}
-					else{
-						printf("Patient: %s gevonden \n", tmp->name);
-						printf("Leeftijd: %d", tmp->age);
-					}
-				
+				if (tmp == NULL)
+				{
+					printf("Niks gevonden man");
+				}
+				else
+				{
+					printf("Patient: %s gevonden \n", tmp->name);
+					printf("Leeftijd: %d", tmp->age);
+				}
+
 				break;
-				}
+			}
 			case MO_SELECT_EXAMINATION_TYPE:
-			    if (centralAcqConnectionState == CONNECTED_WITH_CENTRAL_ACQUISITION) {	
-					// add here your select examination code
+			{
+				int inputExamType;
+				if (centralAcqConnectionState == CONNECTED_WITH_CENTRAL_ACQUISITION)
+				{
+					printf("Set exam type: \n [0] Off \n [1] On \n");
+					scanf("%d", &inputExamType);
+
+					if (inputExamType == 0)
+					{
+						sendMessageToCentralAcquisition("ExOff");
+					}
+					else if (inputExamType == 1)
+					{
+						sendMessageToCentralAcquisition("ExOn");
+					}
+					else
+					{
+						printf("Not a valid input.");
+					}
 				}
-				else {
+				else
+				{
 					printf("This option is only valid when connected with CentralAcquisition\n");
 				}
 				break;
+			}
 			case MO_QUIT:
-				if (centralAcqConnectionState == CONNECTED_WITH_CENTRAL_ACQUISITION) {
+				if (centralAcqConnectionState == CONNECTED_WITH_CENTRAL_ACQUISITION)
+				{
 					disconnectFromCentralAcquisition();
 				}
 				centralAcqConnectionState = NOT_CONNECTED_WITH_CENTRAL_ACQUISITION;
@@ -107,6 +172,6 @@ int main(int argc, char* argv[])
 			}
 			displayMenu();
 		}
-    }
+	}
 	return 0;
 }

@@ -109,6 +109,11 @@ int8_t PatientDoseInPeriod(char * patientName,
  
 int8_t RemovePatient(char * patientName)
 {
+    uint8_t index = 0;
+    index = hashFunction(patientName);
+    hashTable[index] = NULL;
+    
+
 	 return -1;
 }
  
