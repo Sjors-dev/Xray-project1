@@ -3,7 +3,7 @@
 #include <string.h>
 
 
-bool onOff = false;
+
 
 
 typedef enum {
@@ -19,17 +19,23 @@ bool checkForMsgOnSerialPort(char msgArg[MAX_MSG_SIZE]);
 
 void setup() {
   Serial.begin(9600);
-  pinMode(A5, OUTPUT);
+  //led pins
+    pinMode(A5, OUTPUT);
+    pinMode(A4, OUTPUT);
+    digitalWrite(A5, HIGH);
+    digitalWrite(A4, LOW);
+
+
 }
 
 void loop() {
     handleEvent(getEvent());
 
     //below some dummy code that sends dose data to the patient admin. Remove this dummy code asap.
-    static unsigned long timeOut = millis();
+ /*   static unsigned long timeOut = millis();
     static int doseCnt = 0;
     unsigned long curTime = millis();
- /*   if (curTime > timeOut) {
+    if (curTime > timeOut) {
         Serial.print("$dose:"); Serial.print(doseCnt); Serial.println("#");
         timeOut = curTime + 5000;
         doseCnt++;
@@ -42,14 +48,13 @@ void loop() {
 
 if (checkForMsgOnSerialPort(msg)) {
     Serial.write(msg);
-    if (strcmp(msg, "led") == 0) {
-        Serial.write("led gelezen :)");
-        if (!onOff) {
-            digitalWrite(A5, HIGH);
-        } else {
-            digitalWrite(A5, LOW);
-        }
-        onOff = !onOff;
+    if (strcmp(msg, "ExOn") == 0) {
+        digitalWrite(A4, HIGH);
+        digitalWrite(A5, LOW);
+    }
+    else if (strcmp(msg, "ExOff") == 0) {
+        digitalWrite(A5, HIGH);
+        digitalWrite(A4, LOW);
     }
 }
 }
