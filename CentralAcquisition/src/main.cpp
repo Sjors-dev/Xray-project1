@@ -5,7 +5,6 @@
 
 
 
-
 typedef enum {
 	EV_CONNECT_MSG_RECEIVED, 
 	EV_DISCONNECT_MSG_RECEIVED, 
@@ -48,16 +47,24 @@ void loop() {
 
 if (checkForMsgOnSerialPort(msg)) {
     Serial.write(msg);
-    if (strcmp(msg, "ExOn") == 0) {
-        digitalWrite(A4, HIGH);
-        digitalWrite(A5, LOW);
-    }
-    else if (strcmp(msg, "ExOff") == 0) {
+    if (strcmp(msg, "EXAM_TYPE_NONE") == 0) {
         digitalWrite(A5, HIGH);
         digitalWrite(A4, LOW);
     }
+    else (strcmp(msg, "EXAM_TYPE_NONE") == 0) {
+        digitalWrite(A5, HIGH);
+        digitalWrite(A4, LOW);
+    }
+    
 }
 }
+
+/*EXAM_TYPE_SINGLE_SHOT,
+	EXAM_TYPE_SERIES,
+	EXAM_TYPE_SERIES_WITH_MOTION, 
+	EXAM_TYPE_FLUORO,
+	EXAM_TYPE_NONE
+*/
 
 typedef enum {
     STATE_DISCONNECTED,

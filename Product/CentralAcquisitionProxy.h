@@ -8,5 +8,5 @@ bool connectWithCentralAcquisition();
 bool disconnectFromCentralAcquisition();
 void selectExaminationType(const EXAMINATION_TYPES examination);
 bool getDoseDataFromCentralAcquisition(uint32_t * doseData);
-
+bool sendMessageToCentralAcquisition(const char *msg);
 #endif

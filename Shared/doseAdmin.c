@@ -16,8 +16,8 @@ uint8_t hashFunction(char * patientName)
 	unsigned int hash_value = 0;
 
     for (int i = 0; i < length; i++){
-        hash_value = patientName[i];
-        hash_value = ((hash_value * patientName[i]) + patientName[i]) % HASHTABLE_SIZE;
+        hash_value += patientName[i];
+        hash_value += ((hash_value * patientName[i]) + patientName[i]) % HASHTABLE_SIZE;
     }
 
     return hash_value;
@@ -37,6 +37,9 @@ void CreatePatientDoseAdmin()
  
 void RemoveAllDataFromPatientDoseAdmin()
 {
+    for(int i = 0; i < HASHTABLE_SIZE; i++){
+        hashTable[i] = NULL;
+    }
 	 return;
 }
  
@@ -77,7 +80,7 @@ int8_t AddPatient(char * patientName, int patientAge)
     Patient *p = malloc(sizeof(Patient));
     if (!p) return -1;
 
-    strcpy(p->name, patientName);
+    strncpy(p->name, patientName, (MAX_PATIENTNAME_SIZE -1)); //in documentatie kijken of ik max naam -1 moet doen
     p->age = patientAge;
 
     hashTable[index] = p;
@@ -140,7 +143,9 @@ void GetHashPerformance(size_t *totalNumberOfPatients, double *averageNumberOfPa
 {
 	 return;
 }
-				
+
+
+
 int8_t WriteToFile(char * filePath)
 {
 	 return -1;

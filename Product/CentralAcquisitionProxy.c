@@ -12,8 +12,9 @@ static bool getMsgFromCentralAcquisition(char msg[MAX_MSG_SIZE]);
 bool connectWithCentralAcquisition()
 {
 	bool trySucceeded = false;
-	if (setupSerialConnection()) {
-		trySucceeded = connect(); 
+	if (setupSerialConnection())
+	{
+		trySucceeded = connect();
 	}
 	return trySucceeded;
 }
@@ -24,74 +25,93 @@ bool disconnectFromCentralAcquisition()
 	int tryCount = 0;
 	const int maxTryCount = 10;
 	bool disConnected = false;
-	
+
 	printf("Try to disconnect from CentralAquisition...  ");
-	do {
+	do
+	{
 		writeMsgToSerialPort(DISCONNECT_MSG);
-		if (getMsgFromCentralAcquisition(receivedMsg)) {
-			if (strcmp(receivedMsg, DISCONNECT_MSG) == 0) disConnected = true;
-			else 									      tryCount++;			
+		if (getMsgFromCentralAcquisition(receivedMsg))
+		{
+			if (strcmp(receivedMsg, DISCONNECT_MSG) == 0)
+				disConnected = true;
+			else
+				tryCount++;
 		}
-		else tryCount++;
+		else
+			tryCount++;
 		sleep(1);
 	} while (!disConnected && tryCount < maxTryCount);
-	
-	if (disConnected) closeSerialPort();
-		
-	if (disConnected) printf("  ...succeeded\n");
-	else              printf("  ...failed, tried it %d times\n", maxTryCount);
+
+	if (disConnected)
+		closeSerialPort();
+
+	if (disConnected)
+		printf("  ...succeeded\n");
+	else
+		printf("  ...failed, tried it %d times\n", maxTryCount);
 	return disConnected;
 }
 
-void selectExaminationType(const EXAMINATION_TYPES examination) 
+void selectExaminationType(const EXAMINATION_TYPES examination)
 {
-	(void) examination; // remove this line as soon as you are doing something with the argument
+	char msg[20];
+	sprintf(msg, "%d", examination);
+	sendMessageToCentralAcquisition(msg);
+
 	return;
 }
 
-bool getDoseDataFromCentralAcquisition(uint32_t * doseData)
+bool getDoseDataFromCentralAcquisition(uint32_t *doseData)
 {
 	char msg[MAX_MSG_SIZE];
-	if (getMsgFromCentralAcquisition(msg)) {
-		*doseData = 666;// remove this line as soon as you are really doing something with msg
+	if (getMsgFromCentralAcquisition(msg))
+	{
+		*doseData = 666; // remove this line as soon as you are really doing something with msg
 		return true;
 	}
 	return false;
 }
 
-
-typedef enum {
-	WAITING_FOR_MSG_START_SYMBOL, 
+typedef enum
+{
+	WAITING_FOR_MSG_START_SYMBOL,
 	WAITING_FOR_MSG_END_SYMBOL
 } MSG_RECEIVE_STATE;
 
 static bool getMsgFromCentralAcquisition(char msg[MAX_MSG_SIZE])
 {
-    char receivedChar;
+	char receivedChar;
 	int receiveIndex = 0;
 	MSG_RECEIVE_STATE state = WAITING_FOR_MSG_START_SYMBOL;
-	while (1) {
-		if (readSerialPort(&receivedChar) == 1) {
-			switch (state) {
+	while (1)
+	{
+		if (readSerialPort(&receivedChar) == 1)
+		{
+			switch (state)
+			{
 			case WAITING_FOR_MSG_START_SYMBOL:
-				if (receivedChar == MSG_START_SYMBOL) {
+				if (receivedChar == MSG_START_SYMBOL)
+				{
 					receiveIndex = 0;
 					state = WAITING_FOR_MSG_END_SYMBOL;
 				}
 				break;
 			case WAITING_FOR_MSG_END_SYMBOL:
-				if (receivedChar == MSG_END_SYMBOL) {
+				if (receivedChar == MSG_END_SYMBOL)
+				{
 					msg[receiveIndex] = '\0';
 					return true;
 				}
-				else msg[receiveIndex++] = receivedChar;   // oeps, oeps. 
-				                                           // What will happen when receiveIndex equals MAX_MSG_SIZE.  FIX THIS
+				else
+					msg[receiveIndex++] = receivedChar; // oeps, oeps.
+														// What will happen when receiveIndex equals MAX_MSG_SIZE.  FIX THIS
 				break;
 			default:
 				break;
 			}
 		}
-		else return false;
+		else
+			return false;
 	}
 }
 
@@ -100,16 +120,19 @@ static bool setupSerialConnection()
 	int ACMNumber = 0;
 	int tryCount = 0;
 	const int maxTryCount = 50;
-	
+
 	printf("Setting up serial connection...  ");
-	do {	
+	do
+	{
 		char ttyName[30];
-		sprintf(ttyName, "/dev/ttyACM%d", ACMNumber); 
-		if (setupSerialPort(ttyName) == 0) {	
+		sprintf(ttyName, "/dev/ttyACM%d", ACMNumber);
+		if (setupSerialPort(ttyName) == 0)
+		{
 			printf("  ...connected with %s\n", ttyName);
 			return true;
 		}
-		else {
+		else
+		{
 			ACMNumber++;
 			tryCount++;
 		}
@@ -121,8 +144,9 @@ static bool setupSerialConnection()
 	return false;
 }
 
-bool sendMessageToCentralAcquisition(const char* msg) {
-    return writeMsgToSerialPort(msg);
+bool sendMessageToCentralAcquisition(const char *msg)
+{
+	return writeMsgToSerialPort(msg);
 }
 
 static bool connect()
@@ -131,20 +155,27 @@ static bool connect()
 	int tryCount = 0;
 	const int maxTryCount = 10;
 	bool connected = false;
-	
+
 	printf("Try to connect with CentralAquisition...  ");
-	do {
+	do
+	{
 		writeMsgToSerialPort(CONNECT_MSG);
-		if (getMsgFromCentralAcquisition(receivedMsg)) {
-			if (strcmp(receivedMsg, CONNECT_MSG) == 0) connected = true;
-			else 									   tryCount++;			
+		if (getMsgFromCentralAcquisition(receivedMsg))
+		{
+			if (strcmp(receivedMsg, CONNECT_MSG) == 0)
+				connected = true;
+			else
+				tryCount++;
 		}
-		else tryCount++;
+		else
+			tryCount++;
 		sleep(1);
 	} while (!connected && tryCount < maxTryCount);
-		
-	if (connected) printf("  ...succeeded\n");
-	else           printf("  ...failed, tried it %d times\n", maxTryCount);
+
+	if (connected)
+		printf("  ...succeeded\n");
+	else
+		printf("  ...failed, tried it %d times\n", maxTryCount);
 	return connected;
 }
 
@@ -152,7 +183,8 @@ static bool writeMsgToSerialPort(const char msg[])
 {
 	writeSerialPort(MSG_START_SYMBOL);
 	int i = 0;
-	while (i < MAX_MSG_SIZE && msg[i] != '\0') {
+	while (i < MAX_MSG_SIZE && msg[i] != '\0')
+	{
 		writeSerialPort(msg[i++]);
 	}
 	writeSerialPort(MSG_END_SYMBOL);
