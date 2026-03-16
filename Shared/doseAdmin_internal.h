@@ -1,42 +1,35 @@
 #ifndef DOSEADMIN_INTERNAL_H
 #define DOSEADMIN_INTERNAL_H
 
-/* The functions listed in this file need to implemented in doseAdmin.c.
- *
- * This headerfile is also included in the doseAdmin test code, so that 
- * the test code is aware of the internal structure of the stored data
- */
- 
 
 #define HASHTABLE_SIZE			(256)
 
-/*
-	Define here the data structure of your hash table
-*/
+typedef struct {
+    uint8_t   day;
+    uint8_t   month;
+    uint16_t  year;
+} Date;
 
+
+//hashtable struct :)
 typedef struct Patient {
     char name[256];
     int age;
+    int doseage;
+    Date *doseDate;
     
 } Patient;
 
 extern Patient * hashTable[HASHTABLE_SIZE];
 
-/***************************************************************************************
- * Returns a number in the range [0, HASHTABLE_SIZE), i.e. the entry in the hash table
- * 
- * It is a precondition that patientName is not NULL, is \0 terminated, and length
- * does not exceed MAX_PATIENTNAME_SIZE
- */
+
+//hashfunction!!
 uint8_t hashFunction(char * patientName);
 
-/***************************************************************************************
- * Returns the entry to the hash table
- *
- * Returns now a void pointer, but feel free to change it to for instance a pointer to a 
- * patient struct.
- */
+//print print print
 void * getHashTable();
+
+
 
 /***************************************************************************************
  * Returns the total number of patients in the table, the average number of patients in 

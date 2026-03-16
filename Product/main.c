@@ -4,18 +4,19 @@
 #include "doseAdmin.h"
 #include "CentralAcquisitionProxy.h"
 #include <stdint.h>
+#include <string.h>
+#include <time.h>
 
 #define MAX_NAME 256
 
 void *PrintHashTable(void);
+Patient *selected = NULL;
 
 typedef enum
 {
     NOT_CONNECTED_WITH_CENTRAL_ACQUISITION,
     CONNECTED_WITH_CENTRAL_ACQUISITION
 } CENTRAL_ACQUISITION_CONNECTION_STATE;
-
-
 
 CENTRAL_ACQUISITION_CONNECTION_STATE initConnection()
 {
@@ -30,7 +31,12 @@ CENTRAL_ACQUISITION_CONNECTION_STATE initConnection()
     return NOT_CONNECTED_WITH_CENTRAL_ACQUISITION;
 }
 
-
+void userInputName(char *buffer)
+{
+    printf("Input name: \n");
+    fgets(buffer, MAX_NAME, stdin);
+    buffer[strcspn(buffer, "\n")] = 0;
+}
 
 void handleDoseReception(CENTRAL_ACQUISITION_CONNECTION_STATE state)
 {
@@ -44,32 +50,27 @@ void handleDoseReception(CENTRAL_ACQUISITION_CONNECTION_STATE state)
     }
 }
 
-
-
 void handleAddPatient()
 {
     char inputName[MAX_NAME];
     int inputAge;
 
-    printf("Patient name: ");
-    scanf("%s", inputName);
+    userInputName(inputName);
 
     printf("Patient age: ");
     scanf("%d", &inputAge);
 
-    AddPatient(inputName, inputAge);
+    printf("Patient dosage: ");
+
+    AddPatient(inputName, inputAge, 0);
 }
-
-
 
 void handleDeletePatient()
 {
     char inputName[MAX_NAME];
     int inputChoise;
 
-    printf("Patient name to delete:");
-    scanf("%s", inputName);
-    
+    userInputName(inputName);
 
     Patient *tmp = SelectPatient(inputName);
 
@@ -106,35 +107,54 @@ void handleDeletePatient()
     }
 }
 
-
-
 void handleSelectPatient()
 {
     char inputName[MAX_NAME];
 
-    printf("Patient name: ");
-    scanf("%s", inputName);
+    userInputName(inputName);
 
-    Patient *tmp = SelectPatient(inputName);
-
-    if (tmp == NULL)
+    selected = SelectPatient(inputName);
+    if (selected == NULL)
     {
         printf("Niks gevonden man");
     }
     else
     {
-        printf("Patient: %s gevonden \n", tmp->name);
-        printf("Leeftijd: %d", tmp->age);
+        printf("------------------------------------------------------ \n");
+        printf("|                Patient selected! \n");
+        printf("|\n");
+        printf("|                Patient: %s \n", selected->name);
+        printf("|                Leeftijd: %d \n", selected->age);
+        printf("|                Dosage: %d \n", selected->doseage);
+        
+        if (selected->doseDate != NULL)
+{
+    printf("|                Dosage Date: %d-%02d-%02d \n", 
+           selected->doseDate->year, 
+           selected->doseDate->month, 
+           selected->doseDate->day);
+}
+else
+{
+    printf("|                Dosage Date: geen datum \n");
+}
+        printf("------------------------------------------------------ \n");
     }
 }
 
-
-
 void handleSelectExam(CENTRAL_ACQUISITION_CONNECTION_STATE state)
 {
+   
     int inputExamType;
+    int inputDose;
+    
+     if (selected == NULL)
+    {
+        printf("Geen patient geselecteerd! Selecteer eerst een patient.\n");
+        return;
+    }
 
-    if (state == CONNECTED_WITH_CENTRAL_ACQUISITION)
+    if (state == NOT_CONNECTED_WITH_CENTRAL_ACQUISITION)
     {
         printf("\nSelecteer onderzoekstype:\n");
         printf(" [0] Single Shot\n");
@@ -148,6 +168,19 @@ void handleSelectExam(CENTRAL_ACQUISITION_CONNECTION_STATE state)
 
         if (inputExamType >= 0 && inputExamType <= 4)
         {
+            printf("Input dose amount: ");
+            scanf("%d", &inputDose);
+            // get Date
+            time_t now = time(NULL);
+            struct tm *t = localtime(&now);
+
+            Date date;
+
+            date.year = t->tm_year + 1900;
+            date.month = t->tm_mon + 1;
+            date.day = t->tm_mday;
+
+            AddPatientDose(selected->name, &date, inputDose);
             selectExaminationType((EXAMINATION_TYPES)inputExamType);
             printf("Onderzoekstype %d verzonden.\n", inputExamType);
         }
@@ -155,11 +188,12 @@ void handleSelectExam(CENTRAL_ACQUISITION_CONNECTION_STATE state)
         {
             printf("Invalid Choice.\n");
         }
+
+        return;
     }
-	printf("Central Acquisition not connected!!");
+
+    printf("Central Acquisition not connected!!");
 }
-
-
 
 int handleQuit(CENTRAL_ACQUISITION_CONNECTION_STATE *state)
 {
@@ -172,14 +206,28 @@ int handleQuit(CENTRAL_ACQUISITION_CONNECTION_STATE *state)
     return 0;
 }
 
-
+void checkSelected()
+{
+    if (selected == NULL)
+    {
+        printf("\nCouldn't select John Doe..\n\n");
+    }
+    else
+    {
+        printf("\nHash Table created, John Doe selected!\n\n");
+    }
+}
 
 int main(int argc, char *argv[])
 {
+    CreatePatientDoseAdmin();
+    selected = SelectPatient("John Doe"); // selecteer een patient!
+    checkSelected();
+
     CENTRAL_ACQUISITION_CONNECTION_STATE centralAcqConnectionState = initConnection();
 
-    char selectedPatient[MAX_PATIENTNAME_SIZE] = "JohnDoe";
-    (void)selectedPatient;
+    // char selectedPatient[MAX_PATIENTNAME_SIZE] = "JohnDoe";
+    //(void)selectedPatient;
 
     displayMenu();
 
@@ -212,6 +260,7 @@ int main(int argc, char *argv[])
                 break;
 
             case MO_SELECT_EXAMINATION_TYPE:
+
                 handleSelectExam(centralAcqConnectionState);
                 break;
 

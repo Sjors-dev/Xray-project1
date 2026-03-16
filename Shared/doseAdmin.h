@@ -6,8 +6,7 @@
 
 #define MAX_PATIENTNAME_SIZE	(80)
 #define HASHTABLE_SIZE			(256)
-#include "doseAdmin_internal.h" // hier staat struct Patient, nodig voor output selectpatient
-
+#include "doseAdmin_internal.h"
 
 /*************************************************************************************** 
  * Creates and initializes the patient dose administration. No patient data will be 
@@ -35,7 +34,7 @@ void RemoveAllDataFromPatientDoseAdmin();
  * 
  * It is a precondition that patientName is not NULL and is \0 terminated
  */
-int8_t AddPatient(char * patientName, int patientAge);
+int8_t AddPatient(char * patientName, int patientAge, int patientDose);
 
 
 /***************************************************************************************
@@ -49,11 +48,7 @@ int8_t AddPatient(char * patientName, int patientAge);
  */
 Patient* SelectPatient(char * patientName);
 
-typedef struct {
-	uint8_t   day;    // value in range [1, 31]
-	uint8_t   month;  // value in range [1, 12]
-	uint16_t  year;   // value in range [1900, 2500]
-} Date;
+
 
 /***************************************************************************************
  * Adds the dose a patient received during an examination at a particular date in 
@@ -66,7 +61,7 @@ typedef struct {
  * It is also a precondition that date is not NULL
  * It is also a precondition that dose is not 0
  */
-int8_t AddPatientDose(Date* date, uint16_t dose);
+int8_t AddPatientDose(char *patientName ,Date* date, uint16_t dose);
 
 
 /***************************************************************************************
@@ -83,27 +78,11 @@ int8_t PatientDoseInPeriod(char * patientName,
                            Date* startDate, Date* endDate, uint32_t* totalDose);
 
 
-/***************************************************************************************
- * Removes the patient from the administration
- * 
- * Returns -1 when the passed patientName is not present 
- * Returns -2 when string length of patientName exceeds MAX_PATIENTNAME_SIZE
- * Returns  0 when the patient data is successfully removed from the administration
- * 
- * It is a precondition that patientName is not NULL and is \0 terminated
- */
+//grok, verwijder zijn bestaan
 int8_t RemovePatient(char * patientName);
 
 
-/***************************************************************************************
- * Checks if the passed patientName is present in the administration
- * 
- * Returns -1 when the passed patientName is not present 
- * Returns -2 when string length of patientName exceeds MAX_PATIENTNAME_SIZE
- * Returns 0 when the patientName is present
- * 
- * It is a precondition that patientName is not NULL and is \0 terminated
- */
+//lol bestaat deze guy wel
 int8_t IsPatientPresent(char * patientName);
 
 
