@@ -9,8 +9,6 @@
 Patient *hashTable[HASHTABLE_SIZE]; // echte definitie
 void PrintHashTable(void);
 
-
-
 // hashen :))
 uint8_t hashFunction(char *patientName)
 {
@@ -27,15 +25,33 @@ uint8_t hashFunction(char *patientName)
 void testHashFunction()
 {
     AddPatient("Jan de Vries", 32, 67);
+    AddPatient("Jan de Vries", 45, 80); 
+
     AddPatient("Sofie Jansen", 28, 75);
+    AddPatient("Sofie Janssen", 34, 70); 
+
     AddPatient("Mark van Dijk", 45, 80);
+    AddPatient("Mark van Dyke", 41, 78); 
+
     AddPatient("Lisa Bakker", 36, 55);
+    AddPatient("Liza Bakker", 30, 58); 
+
     AddPatient("Tom Visser", 50, 90);
+    AddPatient("Thomas Visser", 27, 65);
+
     AddPatient("Emma Willems", 22, 60);
+    AddPatient("Emma Willems", 29, 62); 
+
     AddPatient("Joris Peters", 40, 70);
+    AddPatient("Joris Peeters", 38, 72); 
+
     AddPatient("Nina de Jong", 29, 65);
+    AddPatient("Nina Jong", 31, 66); 
+
     AddPatient("Pieter Mulder", 33, 85);
+
     AddPatient("Lotte van Leeuwen", 31, 72);
+    AddPatient("Lotte Leeuwen", 26, 68); 
 }
 
 void *getHashTable()
@@ -57,8 +73,7 @@ void RemoveAllDataFromPatientDoseAdmin()
     for (int i = 0; i < HASHTABLE_SIZE; i++)
     {
         hashTable[i] = NULL;
-        free(hashTable[i]);            // dan free patient
-        
+        free(hashTable[i]); // dan free patient
     }
     return;
 }
@@ -66,7 +81,7 @@ void RemoveAllDataFromPatientDoseAdmin()
 // print print print print
 void PrintHashTable()
 {
-   //testHashFunction();     (spreiding van hashen testen)
+    testHashFunction();    // (spreiding van hashen testen)
     bool emptyBool = true;
     printf("Table Start: \n");
     for (int i = 0; i < HASHTABLE_SIZE; i++)
@@ -140,43 +155,74 @@ int8_t AddPatient(char *patientName, int patientAge, int patientDoseage)
 // select een patient :)
 Patient *SelectPatient(char *patientName)
 {
-    uint8_t index = hashFunction(patientName);
-    uint8_t startIndex = index;
+    Patient *matches[20]; // array van max 20 resultaten
+    int matchCount = 0;     
 
-    while (hashTable[index] != NULL)
+    for (int i = 0; i < HASHTABLE_SIZE; i++)
     {
-        if (strcmp(hashTable[index]->name, patientName) == 0) //is index ook srs echt de ingegeven naam?
+        if (hashTable[i] != NULL)
         {
-            return hashTable[index];    
+            if (strstr(hashTable[i]->name, patientName) != NULL)        //strstr zoekt strings in strings. dus hij zoekt voor patientname (input) in de hashtable array.
+            {
+                matches[matchCount] = hashTable[i];
+                matchCount++;
+            }
         }
-        index = (index + 1) % HASHTABLE_SIZE;       //als niet dan volgende, met modulator
-        if (index == startIndex) break; // hele tabel doorlopen
     }
-    return NULL;
+
+    if (matchCount == 0)
+    {
+        return NULL;
+    }
+
+    if (matchCount == 1)
+    {
+        return matches[0];
+    }
+
+    printf("Meerdere patiënten gevonden:\n");
+
+    for (int i = 0; i < matchCount; i++)        //loop door aantal matchcounts (dus matches)
+    {
+        printf("[%d] %s (age %d)\n", i + 1, matches[i]->name, matches[i]->age);     //print naam en leeftijd van match
+    }
+
+    int choice;
+    printf("Kies patiënt: ");
+    scanf("%d", &choice);
+
+    if (choice < 1 || choice > matchCount)
+    {
+        return NULL;
+    }
+
+    return matches[choice - 1];
 }
 
 int8_t AddPatientDose(char *patientName, Date *date, uint16_t dose)
 {
-    if(IsPatientPresent(patientName) == 1){                 //bestaat patient?
+    if (IsPatientPresent(patientName) == 1)
+    { // bestaat patient?
         Patient *tmp = SelectPatient(patientName);
-        if (tmp == NULL) return -1;
+        if (tmp == NULL)
+            return -1;
 
-        Date *dateCopy = malloc(sizeof(Date));  //maak pointer aan voor de date van nu. allocate memory voor grootte hiervan
-        if (!dateCopy) return -2;
+        Date *dateCopy = malloc(sizeof(Date)); // maak pointer aan voor de date van nu. allocate memory voor grootte hiervan
+        if (!dateCopy)
+            return -2;
 
-        *dateCopy = *date;  // copy the contents, not the pointer
+        *dateCopy = *date; // copy the contents, not the pointer
 
         // free vorige date als die bestond
-        if (tmp->doseDate != NULL) {
+        if (tmp->doseDate != NULL)
+        {
             free(tmp->doseDate);
         }
 
         tmp->doseage = dose;
-        tmp->doseDate = dateCopy;  
-    
-
+        tmp->doseDate = dateCopy;
     }
-    
+
     return 1;
 }
 
@@ -190,8 +236,8 @@ int8_t RemovePatient(char *patientName)
 {
     uint8_t index = 0;
     index = hashFunction(patientName);
-    free(hashTable[index]->doseDate);  // free date eerst
-    free(hashTable[index]);            // dan free patient
+    free(hashTable[index]->doseDate); // free date eerst
+    free(hashTable[index]);           // dan free patient
     hashTable[index] = NULL;
 
     return -1;
