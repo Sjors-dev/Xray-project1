@@ -145,6 +145,7 @@ else
 void handleSelectExam(CENTRAL_ACQUISITION_CONNECTION_STATE state)
 {
    
+    //inputs
     int inputExamType;
     int inputDose;
     
@@ -153,6 +154,7 @@ void handleSelectExam(CENTRAL_ACQUISITION_CONNECTION_STATE state)
         printf("Geen patient geselecteerd! Selecteer eerst een patient.\n");
         return;
     }
+
 
     if (state == NOT_CONNECTED_WITH_CENTRAL_ACQUISITION)
     {
@@ -166,24 +168,28 @@ void handleSelectExam(CENTRAL_ACQUISITION_CONNECTION_STATE state)
 
         scanf("%d", &inputExamType);
 
+        //binnen de opties ofc
         if (inputExamType >= 0 && inputExamType <= 4)
         {
             printf("Input dose amount: ");
             scanf("%d", &inputDose);
+            
             // get Date
-            time_t now = time(NULL);
-            struct tm *t = localtime(&now);
+            time_t now = time(NULL); //time_t zit in time.h library. time(NULL) is de tijd nu.
+            struct tm *t = localtime(&now);     //data struct naar leesbare text
 
-            Date date;
+            Date date;          //variabele date aangemaakt. (net als entry in hashtable)
 
-            date.year = t->tm_year + 1900;
+            date.year = t->tm_year + 1900;          //date dingen opslaan
             date.month = t->tm_mon + 1;
             date.day = t->tm_mday;
 
-            AddPatientDose(selected->name, &date, inputDose);
-            selectExaminationType((EXAMINATION_TYPES)inputExamType);
+            AddPatientDose(selected->name, &date, inputDose);       //add patient met dose en dingen bij geselecteerde patient
+            selectExaminationType((EXAMINATION_TYPES)inputExamType);    //select en stuur naar de central acquisition.
             printf("Onderzoekstype %d verzonden.\n", inputExamType);
         }
+
+        
         else
         {
             printf("Invalid Choice.\n");

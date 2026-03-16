@@ -8,11 +8,7 @@
 #define HASHTABLE_SIZE			(256)
 #include "doseAdmin_internal.h"
 
-/*************************************************************************************** 
- * Creates and initializes the patient dose administration. No patient data will be 
- * present after creation
- *  
- */
+//cleart tabel en data en voegt John Doe toe
 void CreatePatientDoseAdmin(); 
 					   
 

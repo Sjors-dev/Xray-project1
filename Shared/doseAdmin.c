@@ -57,6 +57,8 @@ void RemoveAllDataFromPatientDoseAdmin()
     for (int i = 0; i < HASHTABLE_SIZE; i++)
     {
         hashTable[i] = NULL;
+        free(hashTable[i]);            // dan free patient
+        
     }
     return;
 }
@@ -65,8 +67,8 @@ void RemoveAllDataFromPatientDoseAdmin()
 void PrintHashTable()
 {
    //testHashFunction();     (spreiding van hashen testen)
-    bool emptyBool = false;
-    printf("Table: \n");
+    bool emptyBool = true;
+    printf("Table Start: \n");
     for (int i = 0; i < HASHTABLE_SIZE; i++)
     {
         if (hashTable[i] == NULL)
@@ -143,11 +145,11 @@ Patient *SelectPatient(char *patientName)
 
     while (hashTable[index] != NULL)
     {
-        if (strcmp(hashTable[index]->name, patientName) == 0)
+        if (strcmp(hashTable[index]->name, patientName) == 0) //is index ook srs echt de ingegeven naam?
         {
-            return hashTable[index];
+            return hashTable[index];    
         }
-        index = (index + 1) % HASHTABLE_SIZE;
+        index = (index + 1) % HASHTABLE_SIZE;       //als niet dan volgende, met modulator
         if (index == startIndex) break; // hele tabel doorlopen
     }
     return NULL;
@@ -155,22 +157,22 @@ Patient *SelectPatient(char *patientName)
 
 int8_t AddPatientDose(char *patientName, Date *date, uint16_t dose)
 {
-    if(IsPatientPresent(patientName) == 1){
+    if(IsPatientPresent(patientName) == 1){                 //bestaat patient?
         Patient *tmp = SelectPatient(patientName);
         if (tmp == NULL) return -1;
 
-        Date *dateCopy = malloc(sizeof(Date));  // heap allocation
+        Date *dateCopy = malloc(sizeof(Date));  //maak pointer aan voor de date van nu. allocate memory voor grootte hiervan
         if (!dateCopy) return -2;
 
         *dateCopy = *date;  // copy the contents, not the pointer
 
-        // free previous date if one existed
+        // free vorige date als die bestond
         if (tmp->doseDate != NULL) {
             free(tmp->doseDate);
         }
 
         tmp->doseage = dose;
-        tmp->doseDate = dateCopy;  // safe: persists after function returns
+        tmp->doseDate = dateCopy;  
     
 
     }
@@ -188,8 +190,8 @@ int8_t RemovePatient(char *patientName)
 {
     uint8_t index = 0;
     index = hashFunction(patientName);
-    free(hashTable[index]->doseDate);  // free date first
-    free(hashTable[index]);            // then free patient
+    free(hashTable[index]->doseDate);  // free date eerst
+    free(hashTable[index]);            // dan free patient
     hashTable[index] = NULL;
 
     return -1;
