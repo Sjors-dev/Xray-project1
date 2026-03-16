@@ -69,6 +69,7 @@ void handleDeletePatient()
 
     printf("Patient name to delete:");
     scanf("%s", inputName);
+    
 
     Patient *tmp = SelectPatient(inputName);
 
