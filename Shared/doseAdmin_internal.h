@@ -3,21 +3,25 @@
 
 
 #define HASHTABLE_SIZE			(256)
+#define MAX_DOSES (10)
 
 typedef struct {
-    uint8_t   day;
-    uint8_t   month;
-    uint16_t  year;
+    int year;
+    int month;
+    int day;
 } Date;
 
+typedef struct {
+    int dose;
+    char doseType[256];
+    Date *doseDate;
+} Dosage;
 
-//hashtable struct :)
 typedef struct Patient {
     char name[256];
     int age;
-    int doseage;
-    Date *doseDate;
-    
+    Dosage dosages[MAX_DOSES]; // lijst van dosages
+    int doseCount;             // hoeveel er gevuld zijn
 } Patient;
 
 extern Patient * hashTable[HASHTABLE_SIZE];

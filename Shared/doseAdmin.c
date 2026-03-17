@@ -22,41 +22,44 @@ uint8_t hashFunction(char *patientName)
     return hash_value % HASHTABLE_SIZE; // pas modulo toe voor de tabelgrootte
 }
 
+
+
+//even testen :p
 void testHashFunction()
 {
-    AddPatient("Jan de Vries", 32, 67);
-    AddPatient("Jan de Vries", 45, 80); 
+    AddPatient("Jan de Vries", 32);
+    AddPatient("Jan de Vries", 45); 
 
-    AddPatient("Sofie Jansen", 28, 75);
-    AddPatient("Sofie Janssen", 34, 70); 
+    AddPatient("Sofie Jansen", 28);
+    AddPatient("Sofie Janssen", 34); 
 
-    AddPatient("Mark van Dijk", 45, 80);
-    AddPatient("Mark van Dyke", 41, 78); 
+    AddPatient("Mark van Dijk", 45);
+    AddPatient("Mark van Dyke", 41); 
 
-    AddPatient("Lisa Bakker", 36, 55);
-    AddPatient("Liza Bakker", 30, 58); 
+    AddPatient("Lisa Bakker", 36);
+    AddPatient("Liza Bakker", 30); 
 
-    AddPatient("Tom Visser", 50, 90);
-    AddPatient("Thomas Visser", 27, 65);
+    AddPatient("Tom Visser", 50);
+    AddPatient("Thomas Visser", 27);
 
-    AddPatient("Emma Willems", 22, 60);
-    AddPatient("Emma Willems", 29, 62); 
+    AddPatient("Emma Willems", 22);
+    AddPatient("Emma Willems", 29); 
 
-    AddPatient("Joris Peters", 40, 70);
-    AddPatient("Joris Peeters", 38, 72); 
+    AddPatient("Joris Peters", 40);
+    AddPatient("Joris Peeters", 38); 
 
-    AddPatient("Nina de Jong", 29, 65);
-    AddPatient("Nina Jong", 31, 66); 
+    AddPatient("Nina de Jong", 29);
+    AddPatient("Nina Jong", 31); 
 
-    AddPatient("Pieter Mulder", 33, 85);
+    AddPatient("Pieter Mulder", 33);
 
-    AddPatient("Lotte van Leeuwen", 31, 72);
-    AddPatient("Lotte Leeuwen", 26, 68); 
+    AddPatient("Lotte van Leeuwen", 31);
+    AddPatient("Lotte Leeuwen", 26); 
 }
 
 void *getHashTable()
 {
-    // hier is je hashtable geen probleem
+    // hier is je hashtable, geen probleem
     return hashTable;
 }
 
@@ -64,7 +67,7 @@ void CreatePatientDoseAdmin()
 {
     // alles null en een johndoe toevoegen want waarom niet? hell yeah
     RemoveAllDataFromPatientDoseAdmin();
-    AddPatient("John Doe", 18, 0);
+    AddPatient("John Doe", 18);
 }
 
 void RemoveAllDataFromPatientDoseAdmin()
@@ -82,30 +85,19 @@ void RemoveAllDataFromPatientDoseAdmin()
 void PrintHashTable()
 {
     testHashFunction();    // (spreiding van hashen testen)
-    bool emptyBool = true;
     printf("Table Start: \n");
     for (int i = 0; i < HASHTABLE_SIZE; i++)
     {
-        if (hashTable[i] == NULL)
-        {
-            if (emptyBool == false)
-            {
-                printf("\t%i Start\n ", i);
-                emptyBool = true;
-            }
-        }
-        else
-        {
-            if (emptyBool == true)
-            {
-                printf("\t| \n");
-            }
+        if (hashTable[i] != NULL)
+        {     
             printf("\t%i\t%s\n", i, hashTable[i]->name);
+            printf("\t| \n");
+            
         }
     }
 }
 
-int8_t AddPatient(char *patientName, int patientAge, int patientDoseage)
+int8_t AddPatient(char *patientName, int patientAge)
 {
     // check lengte en uniekheid
     if (patientName == NULL)
@@ -144,8 +136,7 @@ int8_t AddPatient(char *patientName, int patientAge, int patientDoseage)
         strncpy(p->name, patientName, (MAX_PATIENTNAME_SIZE - 1)); // kopieer struct op basis van input name
 
         p->age = patientAge; // sla leeftijd en shit op
-        p->doseDate = NULL;  // add this
-        p->doseage = patientDoseage;
+       
 
         hashTable[index] = p; // sla op :)
     }
@@ -202,57 +193,59 @@ Patient *SelectPatient(char *patientName)
 int8_t AddPatientDose(char *patientName, Date *date, uint16_t dose)
 {
     if (IsPatientPresent(patientName) == 1)
-    { // bestaat patient?
+    { 
         Patient *tmp = SelectPatient(patientName);
-        if (tmp == NULL)
+        if (tmp == NULL){
             return -1;
+        }
+
+        if (tmp->doseCount >= MAX_DOSES){
+            printf("Max doses bereikt");
+            return -1;
+        }
+        
+
 
         Date *dateCopy = malloc(sizeof(Date)); // maak pointer aan voor de date van nu. allocate memory voor grootte hiervan
         if (!dateCopy)
-            return -2;
+        return -2;
 
         *dateCopy = *date; // copy the contents, not the pointer
 
-        // free vorige date als die bestond
-        if (tmp->doseDate != NULL)
-        {
-            free(tmp->doseDate);
-        }
-
-        tmp->doseage = dose;
-        tmp->doseDate = dateCopy;
+        tmp->dosages[tmp->doseCount].dose = dose;           //in tmp doseages (array) pak de eerste lege plek. (bijgehouden door dosecount) en pas dose aan
+        tmp->dosages[tmp->doseCount].doseDate = dateCopy;
+        tmp->doseCount++;
     }
 
     return 1;
 }
 
 int8_t PatientDoseInPeriod(char *patientName,
-                           Date *startDate, Date *endDate, uint32_t *totalDose)
+Date *startDate, Date *endDate, uint32_t *totalDose)
 {
     return -1;
 }
 
 int8_t RemovePatient(char *patientName)
 {
+    if(!IsPatientPresent(patientName)){
+        return -1;
+    }
     uint8_t index = 0;
     index = hashFunction(patientName);
-    free(hashTable[index]->doseDate); // free date eerst
-    free(hashTable[index]);           // dan free patient
     hashTable[index] = NULL;
+     free(hashTable[index]);           //free patient x
 
     return -1;
 }
 
 int8_t IsPatientPresent(char *patientName)
 {
-
     uint8_t index = hashFunction(patientName);
-
-    if (hashTable[index] != NULL && strcmp(hashTable[index]->name, patientName) == 0)
+    if (hashTable[index] != NULL && strcmp(hashTable[index]->name, patientName) == 0) //hashtable index is niet leeg. en hashtable index name is zelfde als inputnaam
     {
         return 1;
     }
-
     return 0;
 }
 

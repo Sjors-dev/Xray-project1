@@ -58,11 +58,16 @@ void handleAddPatient()
     userInputName(inputName);
 
     printf("Patient age: ");
-    scanf("%d", &inputAge);
+    scanf("%d   \n", &inputAge);
 
-    printf("Patient dosage: ");
 
-    AddPatient(inputName, inputAge, 0);
+    AddPatient(inputName, inputAge);
+    if(hashFunction(inputName) == inputName){
+        printf("Gelukt!");
+    }
+    else{
+        printf("Lol niks gevonden... naam te lang miss????\n");
+    }
 }
 
 void handleDeletePatient()
@@ -107,10 +112,32 @@ void handleDeletePatient()
     }
 }
 
+
+void printPatient()
+{
+    printf("------------------------------------------------------ \n");
+    printf("                Patient selected! \n");
+    printf("\n");
+    printf("                Patient: %s \n", selected->name);
+    printf("                Leeftijd: %d \n \n", selected->age);
+        
+    for (int i = 0; i < selected->doseCount; i++)
+    {
+            printf("                Dose %d: %d mg op %d-%02d-%02d\n",
+            i + 1,
+            selected->dosages[i].dose,
+            selected->dosages[i].doseDate->year,
+            selected->dosages[i].doseDate->month,
+            selected->dosages[i].doseDate->day);
+    }
+
+    printf("------------------------------------------------------ \n");
+}
+
+
 void handleSelectPatient()
 {
     char inputName[MAX_NAME];
-
     userInputName(inputName);
 
     selected = SelectPatient(inputName);
@@ -120,28 +147,9 @@ void handleSelectPatient()
     }
     else
     {
-        printf("------------------------------------------------------ \n");
-        printf("|                Patient selected! \n");
-        printf("|\n");
-        printf("|                Patient: %s \n", selected->name);
-        printf("|                Leeftijd: %d \n", selected->age);
-        printf("|                Dosage: %d \n", selected->doseage);
-        
-        if (selected->doseDate != NULL)
-{
-    printf("|                Dosage Date: %d-%02d-%02d \n", 
-           selected->doseDate->year, 
-           selected->doseDate->month, 
-           selected->doseDate->day);
+        printPatient();
 }
-else
-{
-    printf("|                Dosage Date: geen datum \n");
 }
-        printf("------------------------------------------------------ \n");
-    }
-}
-
 void handleSelectExam(CENTRAL_ACQUISITION_CONNECTION_STATE state)
 {
    
