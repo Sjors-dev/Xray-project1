@@ -15,13 +15,11 @@ typedef struct {
 
 typedef struct {
     int dose;
-    char doseType[256];
     Date *doseDate;
 } Dosage;
 
 typedef struct Patient {
     char name[MAX_PATIENTNAME_SIZE];
-    int age;
     Dosage dosages[MAX_DOSES]; // lijst van dosages
     int doseCount;             // hoeveel er gevuld zijn
 } Patient;

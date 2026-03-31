@@ -53,16 +53,13 @@ void handleDoseReception(CENTRAL_ACQUISITION_CONNECTION_STATE state)
 void handleAddPatient()
 {
     char inputName[MAX_NAME];
-    int inputAge;
 
     userInputName(inputName);
 
-    printf("Patient age: ");
-    scanf("%d   \n", &inputAge);
 
 
-    AddPatient(inputName, inputAge);
-    if(hashFunction(inputName) == inputName){
+    AddPatient(inputName);
+    if(IsPatientPresent(inputName) == 1){
         printf("Gelukt!");
     }
     else{
@@ -85,7 +82,7 @@ void handleDeletePatient()
         return;
     }
 
-    printf("Are you sure you want to delete %s? \n Age: %d \n[0] Yes \n[1] No \n", tmp->name, tmp->age);
+    printf("Are you sure you want to delete %s? \n [0] Yes \n[1] No \n", tmp->name);
     scanf("%d", &inputChoise);
 
     if (inputChoise == 0)
@@ -120,7 +117,6 @@ void printPatient()
     printf("                Patient selected! \n");
     printf("\n");
     printf("                Patient: %s \n", selected->name);
-    printf("                Leeftijd: %d \n \n", selected->age);
         
     for (int i = 0; i < selected->doseCount; i++)
     {

@@ -5,7 +5,7 @@
 
 
 #define MAX_PATIENTNAME_SIZE	(80)
-#define HASHTABLE_SIZE			(256)
+
 #include "doseAdmin_internal.h"
 
 //cleart tabel en data en voegt John Doe toe
@@ -30,7 +30,7 @@ void RemoveAllDataFromPatientDoseAdmin();
  * 
  * It is a precondition that patientName is not NULL and is \0 terminated
  */
-int8_t AddPatient(char * patientName, int patientAge);
+int8_t AddPatient(char * patientName);
 
 
 /***************************************************************************************

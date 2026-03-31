@@ -23,40 +23,6 @@ uint8_t hashFunction(char *patientName)
 }
 
 
-
-//even testen :p
-void testHashFunction()
-{
-    AddPatient("Jan de Vries", 32);
-    AddPatient("Jan de Vries", 45); 
-
-    AddPatient("Sofie Jansen", 28);
-    AddPatient("Sofie Janssen", 34); 
-
-    AddPatient("Mark van Dijk", 45);
-    AddPatient("Mark van Dyke", 41); 
-
-    AddPatient("Lisa Bakker", 36);
-    AddPatient("Liza Bakker", 30); 
-
-    AddPatient("Tom Visser", 50);
-    AddPatient("Thomas Visser", 27);
-
-    AddPatient("Emma Willems", 22);
-    AddPatient("Emma Willems", 29); 
-
-    AddPatient("Joris Peters", 40);
-    AddPatient("Joris Peeters", 38); 
-
-    AddPatient("Nina de Jong", 29);
-    AddPatient("Nina Jong", 31); 
-
-    AddPatient("Pieter Mulder", 33);
-
-    AddPatient("Lotte van Leeuwen", 31);
-    AddPatient("Lotte Leeuwen", 26); 
-}
-
 void *getHashTable()
 {
     // hier is je hashtable, geen probleem ik return hem wel
@@ -67,24 +33,23 @@ void CreatePatientDoseAdmin()
 {
     // alles null en een johndoe toevoegen want waarom niet? hell yeah
     RemoveAllDataFromPatientDoseAdmin();
-    AddPatient("John Doe", 18);
+    AddPatient("John Doe");
 }
 
 void RemoveAllDataFromPatientDoseAdmin()
 {
-    // alles verwijderen...? rip patienten i guess
     for (int i = 0; i < HASHTABLE_SIZE; i++)
     {
-        hashTable[i] = NULL;
-        free(hashTable[i]); // free patient memory
+       if (hashTable[i] != NULL)
+        {
+            RemovePatient(hashTable[i]->name);
+        }
     }
-    return;
 }
 
 // print print print print
 void PrintHashTable()
 {
-    testHashFunction();    // (spreiding van hashen testen, en test namen voor andere functies)
     printf("Table Start: \n");
     for (int i = 0; i < HASHTABLE_SIZE; i++)
     {
@@ -97,7 +62,7 @@ void PrintHashTable()
     }
 }
 
-int8_t AddPatient(char *patientName, int patientAge)
+int8_t AddPatient(char *patientName)
 {
     // check lengte en uniekheid
     if (patientName == NULL)
@@ -120,11 +85,10 @@ int8_t AddPatient(char *patientName, int patientAge)
     // niet uniek
     if (checkPresent == -1)
     {
-        printf("Patient bestaat al in tabel? wtf loll");
         return -1;
     }
 
-    // hij is uniek!
+    //uniek!
     else
     {
 
@@ -135,7 +99,7 @@ int8_t AddPatient(char *patientName, int patientAge)
 
         strncpy(p->name, patientName, (MAX_PATIENTNAME_SIZE - 1)); // kopieer struct op basis van input name
 
-        p->age = patientAge; // sla leeftijd op
+       
        
 
         hashTable[index] = p; // sla op :)
@@ -175,7 +139,7 @@ Patient *SelectPatient(char *patientName)
 
     for (int i = 0; i < matchCount; i++)        //loop door aantal matchcounts (dus matches)
     {
-        printf("[%d] %s (age %d)\n", i, matches[i]->name, matches[i]->age);     //print naam en leeftijd van match (en choice nummer )
+        printf("[%d] %s\n", i, matches[i]->name);     //print naam en leeftijd van match (en choice nummer )
     }
 
     int choice;
@@ -217,7 +181,7 @@ int8_t AddPatientDose(char *patientName, Date *date, uint16_t dose)
         tmp->doseCount++;
     }
 
-    return 1;
+    return 0;
 }
 
         int8_t PatientDoseInPeriod(char *patientName,
@@ -233,9 +197,9 @@ int8_t RemovePatient(char *patientName)
     }
     uint8_t index = 0;
     index = hashFunction(patientName);
+    free(hashTable[index]);           //free patient x
     hashTable[index] = NULL;
-     free(hashTable[index]);           //free patient x
-
+    
     return -1;
 }
 

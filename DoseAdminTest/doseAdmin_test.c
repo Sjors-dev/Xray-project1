@@ -30,6 +30,9 @@ void addPatient_WhenPatientAlreadyPresent_ThenReturnMinus1(void)
     CreatePatientDoseAdmin();
     TEST_ASSERT_EQUAL(-1, AddPatient("JohnDoe", 666));
 }
+
+
+
 void addPatient_WhenInputOk_ThenReturnZeroAndPatientIsAdded(void)
 {
     CreatePatientDoseAdmin();
@@ -39,6 +42,8 @@ void addPatient_WhenInputOk_ThenReturnZeroAndPatientIsAdded(void)
     Patient** temp = (Patient**) getHashTable();
     TEST_ASSERT_EQUAL_STRING("flip", temp[index]->name);
 }
+
+
 
 // add here all your dose admin testcases, and call them in main!! 
 // Remove the given testcases, they were only added to check if everything is up and running
