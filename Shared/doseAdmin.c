@@ -16,10 +16,10 @@ uint8_t hashFunction(char *patientName)
 
     for (int i = 0; patientName[i] != '\0'; i++)
     {
-        hash_value = hash_value * 31 + patientName[i]; // beter verdeeld
+        hash_value = hash_value * 31 + patientName[i]; // beter verdeeld, met priemgetal 
     }
 
-    return hash_value % HASHTABLE_SIZE; // pas modulo toe voor de tabelgrootte
+    return hash_value % HASHTABLE_SIZE; // pas modulo toe voor de tabelgrootte (geeft restwaarde)
 }
 
 
@@ -59,7 +59,7 @@ void testHashFunction()
 
 void *getHashTable()
 {
-    // hier is je hashtable, geen probleem
+    // hier is je hashtable, geen probleem ik return hem wel
     return hashTable;
 }
 
@@ -76,7 +76,7 @@ void RemoveAllDataFromPatientDoseAdmin()
     for (int i = 0; i < HASHTABLE_SIZE; i++)
     {
         hashTable[i] = NULL;
-        free(hashTable[i]); // dan free patient
+        free(hashTable[i]); // free patient memory
     }
     return;
 }
@@ -84,7 +84,7 @@ void RemoveAllDataFromPatientDoseAdmin()
 // print print print print
 void PrintHashTable()
 {
-    testHashFunction();    // (spreiding van hashen testen)
+    testHashFunction();    // (spreiding van hashen testen, en test namen voor andere functies)
     printf("Table Start: \n");
     for (int i = 0; i < HASHTABLE_SIZE; i++)
     {
@@ -155,7 +155,7 @@ Patient *SelectPatient(char *patientName)
         {
             if (strstr(hashTable[i]->name, patientName) != NULL)        //strstr zoekt strings in strings. dus hij zoekt voor patientname (input) in de hashtable array.
             {
-                matches[matchCount] = hashTable[i];
+                matches[matchCount] = hashTable[i];                     //sla elke match op in list matches
                 matchCount++;
             }
         }
@@ -175,7 +175,7 @@ Patient *SelectPatient(char *patientName)
 
     for (int i = 0; i < matchCount; i++)        //loop door aantal matchcounts (dus matches)
     {
-        printf("[%d] %s (age %d)\n", i + 1, matches[i]->name, matches[i]->age);     //print naam en leeftijd van match
+        printf("[%d] %s (age %d)\n", i, matches[i]->name, matches[i]->age);     //print naam en leeftijd van match (en choice nummer )
     }
 
     int choice;
@@ -187,7 +187,7 @@ Patient *SelectPatient(char *patientName)
         return NULL;
     }
 
-    return matches[choice - 1];
+    return matches[choice];     //
 }
 
 int8_t AddPatientDose(char *patientName, Date *date, uint16_t dose)
@@ -200,7 +200,7 @@ int8_t AddPatientDose(char *patientName, Date *date, uint16_t dose)
         }
 
         if (tmp->doseCount >= MAX_DOSES){
-            printf("Max doses bereikt");
+            printf("Max doses bereikt :(");
             return -1;
         }
         
@@ -210,9 +210,9 @@ int8_t AddPatientDose(char *patientName, Date *date, uint16_t dose)
         if (!dateCopy)
         return -2;
 
-        *dateCopy = *date; // copy the contents, not the pointer
+        *dateCopy = *date; // kopieer  contents, niet de pointer
 
-        tmp->dosages[tmp->doseCount].dose = dose;           //in tmp doseages (array) pak de eerste lege plek. (bijgehouden door dosecount) en pas dose aan
+        tmp->dosages[tmp->doseCount].dose = dose;           //in tmp (pointer naar patient) doseages (array) pak de eerste lege plek (bijgehouden door dosecount) en pas dose aan (in dus die lege plek)
         tmp->dosages[tmp->doseCount].doseDate = dateCopy;
         tmp->doseCount++;
     }
@@ -220,8 +220,8 @@ int8_t AddPatientDose(char *patientName, Date *date, uint16_t dose)
     return 1;
 }
 
-int8_t PatientDoseInPeriod(char *patientName,
-Date *startDate, Date *endDate, uint32_t *totalDose)
+        int8_t PatientDoseInPeriod(char *patientName,
+        Date *startDate, Date *endDate, uint32_t *totalDose) //ehhhh wat?
 {
     return -1;
 }

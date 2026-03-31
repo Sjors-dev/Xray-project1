@@ -2,7 +2,7 @@
 #define DOSEADMIN_INTERNAL_H
 
 
-#define HASHTABLE_SIZE			(256)
+#define HASHTABLE_SIZE			(257) //priemgetal want betere spreiding
 #define MAX_DOSES (10)
 
 typedef struct {

@@ -115,6 +115,7 @@ void handleDeletePatient()
 
 void printPatient()
 {
+    //mooi doosje voor patient info :D
     printf("------------------------------------------------------ \n");
     printf("                Patient selected! \n");
     printf("\n");
@@ -186,7 +187,7 @@ void handleSelectExam(CENTRAL_ACQUISITION_CONNECTION_STATE state)
             time_t now = time(NULL); //time_t zit in time.h library. time(NULL) is de tijd nu.
             struct tm *t = localtime(&now);     //data struct naar leesbare text
 
-            Date date;          //variabele date aangemaakt. (net als entry in hashtable)
+            Date date;          //variabele date aangemaakt. (net als een entry in hashtable)
 
             date.year = t->tm_year + 1900;          //date dingen opslaan
             date.month = t->tm_mon + 1;
