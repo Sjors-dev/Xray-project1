@@ -17,24 +17,27 @@ void tearDown(void)
     // This is run after EACH test
 }
 
-void test_FailTest(void)
+
+
+void addPatient_WhenNameTooLong_ThenReturnMinus3(void)
 {
-    TEST_ASSERT_EQUAL(1, 0); 
+    CreatePatientDoseAdmin();
+    TEST_ASSERT_EQUAL(-3, AddPatient("12345678901234567890123456789012345678901234567890123456789012345678901234567890x", 666));
 }
 
-void test_LeakTest(void)
+void addPatient_WhenPatientAlreadyPresent_ThenReturnMinus1(void)
 {
-	int *a = (int*) malloc(sizeof(int));
-    TEST_ASSERT_EQUAL(1, 1); 
-	*a = 666;
+    CreatePatientDoseAdmin();
+    TEST_ASSERT_EQUAL(-1, AddPatient("JohnDoe", 666));
 }
-
-void test_OutOfRangeTest(void)
+void addPatient_WhenInputOk_ThenReturnZeroAndPatientIsAdded(void)
 {
-	int array[10];
-	
-	array[10] = 666;
-	(void)array;
+    CreatePatientDoseAdmin();
+    TEST_ASSERT_EQUAL(0, AddPatient("flip", 666));
+
+    int index = hashFunction("flip");
+    Patient** temp = (Patient**) getHashTable();
+    TEST_ASSERT_EQUAL_STRING("flip", temp[index]->name);
 }
 
 // add here all your dose admin testcases, and call them in main!! 
@@ -44,9 +47,9 @@ int main()
 {
     UnityBegin();
 
-    MY_RUN_TEST(test_FailTest);
-    MY_RUN_TEST(test_LeakTest);
-    MY_RUN_TEST(test_OutOfRangeTest);
+    MY_RUN_TEST(addPatient_WhenNameTooLong_ThenReturnMinus3);
+    MY_RUN_TEST(addPatient_WhenPatientAlreadyPresent_ThenReturnMinus1);
+    MY_RUN_TEST(addPatient_WhenInputOk_ThenReturnZeroAndPatientIsAdded);
 
     UnityEnd();
 }

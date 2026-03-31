@@ -1,8 +1,10 @@
 #ifndef DOSEADMIN_INTERNAL_H
 #define DOSEADMIN_INTERNAL_H
 
+#include <doseAdmin.h>
 
-#define HASHTABLE_SIZE			(257) //priemgetal want betere spreiding
+
+#define HASHTABLE_SIZE			(256) 
 #define MAX_DOSES (10)
 
 typedef struct {
@@ -18,13 +20,13 @@ typedef struct {
 } Dosage;
 
 typedef struct Patient {
-    char name[256];
+    char name[MAX_PATIENTNAME_SIZE];
     int age;
     Dosage dosages[MAX_DOSES]; // lijst van dosages
     int doseCount;             // hoeveel er gevuld zijn
 } Patient;
 
-extern Patient * hashTable[HASHTABLE_SIZE];
+//extern Patient * hashTable[HASHTABLE_SIZE];
 
 
 //hashfunction!!

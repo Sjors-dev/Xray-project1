@@ -5,7 +5,7 @@
 
 
 #define MAX_PATIENTNAME_SIZE	(80)
-#define HASHTABLE_SIZE			(263)
+#define HASHTABLE_SIZE			(256)
 #include "doseAdmin_internal.h"
 
 //cleart tabel en data en voegt John Doe toe

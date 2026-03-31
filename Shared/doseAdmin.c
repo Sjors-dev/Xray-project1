@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-Patient *hashTable[HASHTABLE_SIZE]; // echte definitie
+static Patient *hashTable[HASHTABLE_SIZE]; // echte definitie
 void PrintHashTable(void);
 
 // hashen :))
@@ -135,7 +135,7 @@ int8_t AddPatient(char *patientName, int patientAge)
 
         strncpy(p->name, patientName, (MAX_PATIENTNAME_SIZE - 1)); // kopieer struct op basis van input name
 
-        p->age = patientAge; // sla leeftijd en shit op
+        p->age = patientAge; // sla leeftijd op
        
 
         hashTable[index] = p; // sla op :)
