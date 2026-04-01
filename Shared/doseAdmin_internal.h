@@ -15,7 +15,7 @@ typedef struct {
 
 typedef struct {
     int dose;
-    Date *doseDate;
+    Date doseDate;
 } Dosage;
 
 typedef struct Patient {

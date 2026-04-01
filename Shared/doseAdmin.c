@@ -10,9 +10,9 @@ static Patient *hashTable[HASHTABLE_SIZE]; // echte definitie
 void PrintHashTable(void);
 
 // hashen :))
-uint8_t hashFunction(char *patientName)
+uint8_t hashFunction(char *patientName) //extra variabele toevoegen, van lengte patientname 
 {
-    unsigned int hash_value = 0;
+    uint32_t hash_value = 0;
 
     for (int i = 0; patientName[i] != '\0'; i++)
     {
@@ -25,7 +25,6 @@ uint8_t hashFunction(char *patientName)
 
 void *getHashTable()
 {
-    // hier is je hashtable, geen probleem ik return hem wel
     return hashTable;
 }
 
@@ -70,6 +69,11 @@ int8_t AddPatient(char *patientName)
     if (strlen(patientName) > MAX_PATIENTNAME_SIZE)
         return -3;
     int checkPresent = IsPatientPresent(patientName);
+     // niet uniek
+    if (checkPresent == -1)
+    {
+        return -1;
+    }
 
     uint8_t index = hashFunction(patientName);
     uint8_t startIndex = index;
@@ -82,15 +86,9 @@ int8_t AddPatient(char *patientName)
             return -4; // hele table vol :(
     }
 
-    // niet uniek
-    if (checkPresent == -1)
-    {
-        return -1;
-    }
+   
 
-    //uniek!
-    else
-    {
+    
 
         Patient *p = malloc(sizeof(Patient)); // memory allocate op basis van grootte struct
 
@@ -98,12 +96,9 @@ int8_t AddPatient(char *patientName)
             return -2; // ehh geen patient?
 
         strncpy(p->name, patientName, (MAX_PATIENTNAME_SIZE - 1)); // kopieer struct op basis van input name
-
        
-       
-
         hashTable[index] = p; // sla op :)
-    }
+    
     return 0;
 }
 
@@ -168,24 +163,17 @@ int8_t AddPatientDose(char *patientName, Date *date, uint16_t dose)
             return -1;
         }
         
-
-
-        Date *dateCopy = malloc(sizeof(Date)); // maak pointer aan voor de date van nu. allocate memory voor grootte hiervan
-        if (!dateCopy)
-        return -2;
-
-        *dateCopy = *date; // kopieer  contents, niet de pointer
+        
 
         tmp->dosages[tmp->doseCount].dose = dose;           //in tmp (pointer naar patient) doseages (array) pak de eerste lege plek (bijgehouden door dosecount) en pas dose aan (in dus die lege plek)
-        tmp->dosages[tmp->doseCount].doseDate = dateCopy;
+        tmp->dosages[tmp->doseCount].doseDate = *date; // gewoon kopiëren
         tmp->doseCount++;
     }
 
     return 0;
 }
 
-        int8_t PatientDoseInPeriod(char *patientName,
-        Date *startDate, Date *endDate, uint32_t *totalDose) //ehhhh wat?
+        int8_t PatientDoseInPeriod(char *patientName, Date *startDate, Date *endDate, uint32_t *totalDose) //ehhhh wat?
 {
     return -1;
 }
@@ -197,7 +185,7 @@ int8_t RemovePatient(char *patientName)
     }
     uint8_t index = 0;
     index = hashFunction(patientName);
-    free(hashTable[index]);           //free patient x
+    free(hashTable[index]);           //free memory patient x, dan index nullen
     hashTable[index] = NULL;
     
     return -1;
@@ -206,10 +194,8 @@ int8_t RemovePatient(char *patientName)
 int8_t IsPatientPresent(char *patientName)
 {
     uint8_t index = hashFunction(patientName);
-    if (hashTable[index] != NULL && strcmp(hashTable[index]->name, patientName) == 0) //hashtable index is niet leeg. en hashtable index name is zelfde als inputnaam
-    {
-        return 1;
-    }
+    return(hashTable[index] != NULL && strcmp(hashTable[index]->name, patientName) == 0); //hashtable index is niet leeg. en hashtable index name is zelfde als inputnaam
+    
     return 0;
 }
 

@@ -55,9 +55,7 @@ void handleAddPatient()
     char inputName[MAX_NAME];
 
     userInputName(inputName);
-
-
-
+    
     AddPatient(inputName);
     if(IsPatientPresent(inputName) == 1){
         printf("Gelukt!");
@@ -123,9 +121,9 @@ void printPatient()
             printf("                Dose %d: %d mg op %d-%02d-%02d\n",
             i + 1,
             selected->dosages[i].dose,
-            selected->dosages[i].doseDate->year,
-            selected->dosages[i].doseDate->month,
-            selected->dosages[i].doseDate->day);
+            selected->dosages[i].doseDate.year,
+            selected->dosages[i].doseDate.month,
+            selected->dosages[i].doseDate.day);
     }
 
     printf("------------------------------------------------------ \n");
