@@ -90,7 +90,7 @@ int8_t AddPatient(char *patientName)
 
     
 
-        Patient *p = malloc(sizeof(Patient)); // memory allocate op basis van grootte struct
+        Patient *p = calloc(1, sizeof(Patient)); // memory allocate op basis van grootte struct
 
         if (!p)
             return -2; // ehh geen patient?
@@ -168,9 +168,12 @@ int8_t AddPatientDose(char *patientName, Date *date, uint16_t dose)
         tmp->dosages[tmp->doseCount].dose = dose;           //in tmp (pointer naar patient) doseages (array) pak de eerste lege plek (bijgehouden door dosecount) en pas dose aan (in dus die lege plek)
         tmp->dosages[tmp->doseCount].doseDate = *date; // gewoon kopiëren
         tmp->doseCount++;
+
+        return 0;
+
     }
 
-    return 0;
+    return -1;
 }
 
         int8_t PatientDoseInPeriod(char *patientName, Date *startDate, Date *endDate, uint32_t *totalDose) //ehhhh wat?
