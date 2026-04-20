@@ -18,7 +18,7 @@ HEADER_TEST_FILES := $(wildcard $(patsubst %,%/*.h, $(TEST_DIRS)))
 TEST_INC_DIRS=-I$(TEST_DIR) -I$(SHARED_DIR) -I$(UNITY_FOLDER)
 
 CC=gcc
-SYMBOLS=-Wall -g -pedantic -O0 -std=c99
+SYMBOLS=-Wall -Wextra -g -pedantic -O0 -std=c99
 TEST_SYMBOLS=$(SYMBOLS) -DTEST -DUNITY_USE_MODULE_SETUP_TEARDOWN
 
 .PHONY: clean test

@@ -44,6 +44,8 @@ int8_t AddPatient(char * patientName);
  */
 Patient* SelectPatient(char * patientName);
 
+size_t FindPatients(char *patientName, Patient **matches, size_t maxMatches);
+
 
 
 /***************************************************************************************

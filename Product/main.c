@@ -38,6 +38,40 @@ void userInputName(char *buffer)
     buffer[strcspn(buffer, "\n")] = 0;
 }
 
+Patient *selectPatientWithUi(char *patientName)
+{
+    Patient *matches[20];
+    int choice;
+    size_t matchCount = FindPatients(patientName, matches, 20);
+
+    if (matchCount == 0)
+    {
+        return NULL;
+    }
+
+    if (matchCount == 1)
+    {
+        return matches[0];
+    }
+
+    printf("Meerdere patiënten gevonden:\n");
+
+    for (size_t i = 0; i < matchCount; i++)
+    {
+        printf("[%zu] %s\n", i, matches[i]->name);
+    }
+
+    printf("Kies patiënt: ");
+    scanf("%d", &choice);
+
+    if (choice < 1 || choice > (int)matchCount)
+    {
+        return NULL;
+    }
+
+    return matches[choice];
+}
+
 void handleDoseReception(CENTRAL_ACQUISITION_CONNECTION_STATE state)
 {
     if (state == CONNECTED_WITH_CENTRAL_ACQUISITION)
@@ -55,12 +89,14 @@ void handleAddPatient()
     char inputName[MAX_NAME];
 
     userInputName(inputName);
-    
+
     AddPatient(inputName);
-    if(IsPatientPresent(inputName) == 1){
+    if (IsPatientPresent(inputName) == 1)
+    {
         printf("Gelukt!");
     }
-    else{
+    else
+    {
         printf("Lol niks gevonden... naam te lang miss????\n");
     }
 }
@@ -72,7 +108,7 @@ void handleDeletePatient()
 
     userInputName(inputName);
 
-    Patient *tmp = SelectPatient(inputName);
+    Patient *tmp = selectPatientWithUi(inputName);
 
     if (tmp == NULL)
     {
@@ -86,7 +122,7 @@ void handleDeletePatient()
     if (inputChoise == 0)
     {
         RemovePatient(inputName);
-        tmp = SelectPatient(inputName);
+        tmp = selectPatientWithUi(inputName);
 
         if (tmp == NULL)
         {
@@ -107,35 +143,33 @@ void handleDeletePatient()
     }
 }
 
-
 void printPatient()
 {
-    //mooi doosje voor patient info :D
+    // mooi doosje voor patient info :D
     printf("------------------------------------------------------ \n");
     printf("                Patient selected! \n");
     printf("\n");
     printf("                Patient: %s \n", selected->name);
-        
+
     for (int i = 0; i < selected->doseCount; i++)
     {
-            printf("                Dose %d: %d mg op %d-%02d-%02d\n",
-            i + 1,
-            selected->dosages[i].dose,
-            selected->dosages[i].doseDate.year,
-            selected->dosages[i].doseDate.month,
-            selected->dosages[i].doseDate.day);
+        printf("                Dose %d: %d mg op %d-%02d-%02d\n",
+               i + 1,
+               selected->dosages[i].dose,
+               selected->dosages[i].doseDate.year,
+               selected->dosages[i].doseDate.month,
+               selected->dosages[i].doseDate.day);
     }
 
     printf("------------------------------------------------------ \n");
 }
-
 
 void handleSelectPatient()
 {
     char inputName[MAX_NAME];
     userInputName(inputName);
 
-    selected = SelectPatient(inputName);
+    selected = selectPatientWithUi(inputName);
     if (selected == NULL)
     {
         printf("Niks gevonden man");
@@ -143,21 +177,20 @@ void handleSelectPatient()
     else
     {
         printPatient();
-}
+    }
 }
 void handleSelectExam(CENTRAL_ACQUISITION_CONNECTION_STATE state)
 {
-   
-    //inputs
+
+    // inputs
     int inputExamType;
     int inputDose;
-    
-     if (selected == NULL)
+
+    if (selected == NULL)
     {
         printf("Geen patient geselecteerd! Selecteer eerst een patient.\n");
         return;
     }
-
 
     if (state == NOT_CONNECTED_WITH_CENTRAL_ACQUISITION)
     {
@@ -171,28 +204,27 @@ void handleSelectExam(CENTRAL_ACQUISITION_CONNECTION_STATE state)
 
         scanf("%d", &inputExamType);
 
-        //binnen de opties ofc
+        // binnen de opties ofc
         if (inputExamType >= 0 && inputExamType <= 4)
         {
             printf("Input dose amount: ");
             scanf("%d", &inputDose);
-            
+
             // get Date
-            time_t now = time(NULL); //time_t zit in time.h library. time(NULL) is de tijd nu.
-            struct tm *t = localtime(&now);     //data struct naar leesbare text
+            time_t now = time(NULL);        // time_t zit in time.h library. time(NULL) is de tijd nu.
+            struct tm *t = localtime(&now); // data struct naar leesbare text
 
-            Date date;          //variabele date aangemaakt. (net als een entry in hashtable)
+            Date date; // variabele date aangemaakt. (net als een entry in hashtable)
 
-            date.year = t->tm_year + 1900;          //date dingen opslaan
+            date.year = t->tm_year + 1900; // date dingen opslaan
             date.month = t->tm_mon + 1;
             date.day = t->tm_mday;
 
-            AddPatientDose(selected->name, &date, inputDose);       //add patient met dose en dingen bij geselecteerde patient
-            selectExaminationType((EXAMINATION_TYPES)inputExamType);    //select en stuur naar de central acquisition.
+            AddPatientDose(selected->name, &date, inputDose);        // add patient met dose en dingen bij geselecteerde patient
+            selectExaminationType((EXAMINATION_TYPES)inputExamType); // select en stuur naar de central acquisition.
             printf("Onderzoekstype %d verzonden.\n", inputExamType);
         }
 
-        
         else
         {
             printf("Invalid Choice.\n");

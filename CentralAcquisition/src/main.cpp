@@ -1,153 +1,103 @@
 #include <Arduino.h>
+#include <Wire.h>
+#include <avr/io.h>
+//#include "../../Interface_I2C/Protocol_I2C.h"
 #include "../../Interface_PatAdmin_CentralAcq/Protocol_PatientAdmin_CentralAcq.h"
-#include <string.h>
 
+// I2C
+#define GEO_ADDR   0x10
+#define XRAY_ADDR  0x20
 
+// LEDs
+#define PIN_PREPARED_LAMP  7
+#define PIN_ACQUIRING_LAMP 8
+#define RED_LED            9   // exam type set
+#define GREEN_LED          10  // NO_EXAM selected
+
+// Buttons
+#define PIN_PREPARE_BTN    2
+#define PIN_XRAY_BTN       3
+
+// SAN bus (digitale draden)
+#define SAN_XRAY_ENABLED   4   // OUTPUT - hoog als xray actief
 
 
 typedef enum {
-	EV_CONNECT_MSG_RECEIVED, 
-	EV_DISCONNECT_MSG_RECEIVED, 
-	EV_NONE
-} EVENTS;
+    STATE_NOT_CONNECTED,
+    STATE_IDLE,
+    STATE_PREPARING,
+    STATE_PREPARED,
+    STATE_ACQUIRING
+} CentralAcqState;
 
-EVENTS getEvent();
-void handleEvent(EVENTS event);
-static bool writeMsgToSerialPort(const char msg[MAX_MSG_SIZE]);
-bool checkForMsgOnSerialPort(char msgArg[MAX_MSG_SIZE]);
+//globale variablen
+CentralAcqState state = STATE_NOT_CONNECTED;
+bool prepBtnPressed = false;
+bool xrayBtnPressed = false;
+unsigned long preparingStartTime = 0;
+
+
+
 
 void setup() {
-  Serial.begin(9600);
-  //led pins
-    pinMode(A5, OUTPUT);
-    pinMode(A4, OUTPUT);
-    digitalWrite(A5, HIGH);
-    digitalWrite(A4, LOW);
 
+    Wire.begin();  // master heeft geen adres
+    Wire.setClock(100000); // 100 kHz
+    Serial.begin(9600);
+    
+    Serial.println("Hoi!!");
+    DDRD |= (1 << PD7);   // Zet pin 7 as OUTPUT
+}
 
+// Schrijf een waarde naar een register op een slave
+void writeRegister(uint8_t deviceAddr, uint8_t reg, uint8_t value) {
+    Wire.beginTransmission(deviceAddr);
+    Wire.write(reg);    // selecteer register
+    Wire.write(value);  // schrijf waarde
+    Wire.endTransmission();
+}
+
+// Lees een register van een slave
+uint8_t readRegister(uint8_t deviceAddr, uint8_t reg) {
+    Wire.beginTransmission(deviceAddr);
+    Wire.write(reg);  // selecteer register
+    Wire.endTransmission(false);  // geen stop, repeated start
+    
+    Wire.requestFrom(deviceAddr, (uint8_t)1);
+    if (Wire.available()) {
+        return Wire.read();
+    }
+    return 0xFF;  // fout
+}
+
+// Stuur prepare command naar Geo en Xray
+void sendPrepare() {
+    writeRegister(GEO_ADDR,  0x08, 0x10);  // $8, cmd = 01 in bits 5:4
+    writeRegister(XRAY_ADDR, 0x08, 0x10); 
 }
 
 void loop() {
-    handleEvent(getEvent());
+    
+    // Lees state van Geometry ($9)
+    uint8_t geoState = readRegister(GEO_ADDR, 0x09);
+    Serial.println(geoState);
+    
+    // Lees state van XrayGenerator ($9)
+    uint8_t xrayState = readRegister(XRAY_ADDR, 0x09);
+    Serial.println(xrayState);
 
-    //below some dummy code that sends dose data to the patient admin. Remove this dummy code asap.
- /*   static unsigned long timeOut = millis();
-    static int doseCnt = 0;
-    unsigned long curTime = millis();
-    if (curTime > timeOut) {
-        Serial.print("$dose:"); Serial.print(doseCnt); Serial.println("#");
-        timeOut = curTime + 5000;
-        doseCnt++;
-        
-        
-
+    
+    // Check of beide prepared zijn (bits 7:6 == 10)
+    bool geoPrepared  = ((geoState  >> 6) & 0x03) == 0x02;
+    bool xrayPrepared = ((xrayState >> 6) & 0x03) == 0x02;
+    
+    if (!geoPrepared || !xrayPrepared) {
+        sendPrepare();
+        PORTD &= ~(1 << 7); // zet pin 7 LOW (LED uit)
     }
-*/
-     char msg[MAX_MSG_SIZE];
-
-if (checkForMsgOnSerialPort(msg)) {
-    Serial.write(msg);
-    if (strcmp(msg, "EXAM_TYPE_NONE") == 0) {
-        digitalWrite(A5, HIGH);
-        digitalWrite(A4, LOW);
-    }
-    else (strcmp(msg, "EXAM_TYPE_NONE") == 0) {
-        digitalWrite(A5, HIGH);
-        digitalWrite(A4, LOW);
+    else{
+        PORTD |= (1 << 7);  // zet pin 7 HIGH (LED aan)
     }
     
+    delay(500);  // alleen in master loop mag delay
 }
-}
-
-/*EXAM_TYPE_SINGLE_SHOT,
-	EXAM_TYPE_SERIES,
-	EXAM_TYPE_SERIES_WITH_MOTION, 
-	EXAM_TYPE_FLUORO,
-	EXAM_TYPE_NONE
-*/
-
-typedef enum {
-    STATE_DISCONNECTED,
-    STATE_CONNECTED    // probably in the future this state will have substates!!
-} CENTRAL_ACQ_STATES;
-
-void handleEvent(EVENTS event)
-{
-    static CENTRAL_ACQ_STATES centralAcqState = STATE_DISCONNECTED;
-
-    switch (centralAcqState) {
-    case STATE_DISCONNECTED:
-        if (event == EV_CONNECT_MSG_RECEIVED) {
-            centralAcqState = STATE_CONNECTED;
-            writeMsgToSerialPort(CONNECT_MSG);
-        }
-        break;
-    case STATE_CONNECTED:
-        if (event == EV_DISCONNECT_MSG_RECEIVED) {
-            centralAcqState = STATE_DISCONNECTED;
-            writeMsgToSerialPort(DISCONNECT_MSG);
-        }
-        break;
-    default:
-        break;
-    }
-}
-
-EVENTS getEvent() 
-{
-    char msg[MAX_MSG_SIZE];
-    if (checkForMsgOnSerialPort(msg)) {
-        if      (strcmp(msg, CONNECT_MSG) == 0)     return EV_CONNECT_MSG_RECEIVED;
-        else if (strcmp(msg, DISCONNECT_MSG) == 0)  return EV_DISCONNECT_MSG_RECEIVED;
-    }
-    return EV_NONE;
-}
-
-static bool writeMsgToSerialPort(const char msg[MAX_MSG_SIZE])
-{
-	Serial.write(MSG_START_SYMBOL);
-	int i = 0;
-	while (i < MAX_MSG_SIZE && msg[i] != '\0') {
-		Serial.write(msg[i++]);
-	}
-	Serial.write(MSG_END_SYMBOL);
-	return true;
-}
-
-typedef enum {
-	WAITING_FOR_MSG_START_SYMBOL, 
-	WAITING_FOR_MSG_END_SYMBOL
-} MSG_RECEIVE_STATE;
-
-bool checkForMsgOnSerialPort(char msgArg[MAX_MSG_SIZE])
-{
-    static MSG_RECEIVE_STATE msgRcvState = WAITING_FOR_MSG_START_SYMBOL;
-    static int receiveIndex = 0;
-    static char msg[MAX_MSG_SIZE] {0};
-
-    if (Serial.available() > 0) {
-        char receivedChar = Serial.read(); 
-		switch (msgRcvState) {
-			case WAITING_FOR_MSG_START_SYMBOL:
-				if (receivedChar == MSG_START_SYMBOL) {
-					receiveIndex = 0;
-					msgRcvState = WAITING_FOR_MSG_END_SYMBOL;
-				}
-				break;
-			case WAITING_FOR_MSG_END_SYMBOL:
-				if (receivedChar == MSG_END_SYMBOL) {
-					msg[receiveIndex] = '\0';
-                    receiveIndex = 0;
-                    strncpy(msgArg, msg, MAX_MSG_SIZE);  
-					msgRcvState = WAITING_FOR_MSG_START_SYMBOL;
-					return true;
-				}
-				else msg[receiveIndex++] = receivedChar;
-				break;
-			default:
-				break;
-		}
-	}
-    return false;
-}
-
