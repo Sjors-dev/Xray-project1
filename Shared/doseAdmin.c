@@ -1,17 +1,18 @@
-#include "doseAdmin.h"
-#include "doseAdmin_internal.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include "doseAdmin.h"
+#include "doseAdmin_internal.h"
 
 static Patient *hashTable[HASHTABLE_SIZE]; // echte definitie
 void PrintHashTable(void);
 
-// hashen :))
-uint8_t hashFunction(const char const *patientName, uint16_t len)
+// hashen
+uint8_t hashFunction(char *patientName)
 {
+    uint16_t len = strlen(patientName);
     uint32_t hash_value = 0;
 
     for (int i = 0; i < len; i++)
@@ -29,7 +30,7 @@ void *GetHashTable()
 
 void CreatePatientDoseAdmin()
 {
-    // alles null en een johndoe toevoegen want waarom niet? hell yeah
+    // alles null en een johndoe toevoegen
     RemoveAllDataFromPatientDoseAdmin();
     AddPatient("John Doe");
 }
@@ -45,7 +46,7 @@ void RemoveAllDataFromPatientDoseAdmin()
     }
 }
 
-// print print print print
+// print
 void PrintHashTable()
 {
     printf("Table Start: \n");
@@ -61,28 +62,30 @@ void PrintHashTable()
 
 int8_t AddPatient(char *patientName)
 {
-    uint16_t len = strlen(patientName);
-    // check lengte en uniekheid
     if (patientName == NULL)
         return -3;
     if (strlen(patientName) > MAX_PATIENTNAME_SIZE)
         return -3;
-    int checkPresent = IsPatientPresent(patientName);
-    // niet uniek
-    if (checkPresent == -1)
+
+    uint8_t index = hashFunction(patientName);
+    uint8_t nextIndex = (index + 1) % HASHTABLE_SIZE;
+
+    if ((hashTable[index] != NULL && strcmp(hashTable[index]->name, patientName) == 0) ||
+        (hashTable[nextIndex] != NULL && strcmp(hashTable[nextIndex]->name, patientName) == 0))
     {
         return -1;
     }
 
-    uint8_t index = hashFunction(patientName, len);
-    uint8_t startIndex = index;
-
-    // maak hash index aan
-    while (hashTable[index] != NULL)
+    if (hashTable[index] != NULL)
     {
-        index = (index + 1) % HASHTABLE_SIZE;
-        if (index == startIndex)
-            return -4; // hele table vol :(
+        if (hashTable[nextIndex] == NULL)
+        {
+            index = nextIndex;
+        }
+        else
+        {
+            return -4;
+        }
     }
 
     Patient *p = calloc(1, sizeof(Patient)); // memory allocate op basis van grootte struct
@@ -92,51 +95,55 @@ int8_t AddPatient(char *patientName)
 
     strncpy(p->name, patientName, (MAX_PATIENTNAME_SIZE - 1)); // kopieer struct op basis van input name
 
-    hashTable[index] = p; // sla op :)
+    hashTable[index] = p; // sla op
 
     return 0;
 }
 
-// select een patient :)
+// select een patient
 size_t FindPatients(char *patientName, Patient **matches, size_t maxMatches)
 {
-    size_t matchCount = 0;
-
     if (patientName == NULL)
     {
         return 0;
     }
 
-    for (int i = 0; i < HASHTABLE_SIZE; i++)
+    Patient *patient = SelectPatient(patientName);
+    if (patient == NULL)
     {
-        if (hashTable[i] != NULL)
-        {
-            if (strstr(hashTable[i]->name, patientName) != NULL) // strstr zoekt strings in strings. dus hij zoekt voor patientname (input) in de hashtable array.
-            {
-                if (matches != NULL && matchCount < maxMatches)
-                {
-                    matches[matchCount] = hashTable[i]; // sla elke match op in list matches
-                }
-                matchCount++;
-            }
-        }
+        return 0;
     }
 
-    return matchCount;
+    if (matches != NULL && maxMatches > 0)
+    {
+        matches[0] = patient;
+    }
+
+    return 1;
 }
 
-// select een patient :)
+// select een patient
 Patient *SelectPatient(char *patientName)
 {
-    Patient *matches[20];
-    size_t matchCount = FindPatients(patientName, matches, 20);
-
-    if (matchCount == 0)
+    if (patientName == NULL)
     {
         return NULL;
     }
 
-    return matches[0];
+    uint8_t index = hashFunction(patientName);
+    uint8_t nextIndex = (index + 1) % HASHTABLE_SIZE;
+
+    if (hashTable[index] != NULL && strcmp(hashTable[index]->name, patientName) == 0)
+    {
+        return hashTable[index];
+    }
+
+    if (hashTable[nextIndex] != NULL && strcmp(hashTable[nextIndex]->name, patientName) == 0)
+    {
+        return hashTable[nextIndex];
+    }
+
+    return NULL;
 }
 
 int8_t AddPatientDose(char *patientName, Date *date, uint16_t dose)
@@ -165,31 +172,41 @@ int8_t AddPatientDose(char *patientName, Date *date, uint16_t dose)
     return -1;
 }
 
-int8_t PatientDoseInPeriod(char *patientName, Date *startDate, Date *endDate, uint32_t *totalDose) // ehhhh wat?
+int8_t PatientDoseInPeriod(char *patientName, Date *startDate, Date *endDate, uint32_t *totalDose)
 {
     return -1;
 }
 
 int8_t RemovePatient(char *patientName)
 {
-    uint16_t len = strlen(patientName);
-    if (!IsPatientPresent(patientName))
+    if (patientName == NULL)
     {
         return -1;
     }
 
-    uint8_t index = hashFunction(patientName, len);
-    free(hashTable[index]); // free memory patient x, dan index nullen
-    hashTable[index] = NULL;
+    uint8_t index = hashFunction(patientName);
+    uint8_t nextIndex = (index + 1) % HASHTABLE_SIZE;
+
+    if (hashTable[index] != NULL && strcmp(hashTable[index]->name, patientName) == 0)
+    {
+        free(hashTable[index]);
+        hashTable[index] = NULL;
+        return 0;
+    }
+
+    if (hashTable[nextIndex] != NULL && strcmp(hashTable[nextIndex]->name, patientName) == 0)
+    {
+        free(hashTable[nextIndex]);
+        hashTable[nextIndex] = NULL;
+        return 0;
+    }
 
     return -1;
 }
 
 int8_t IsPatientPresent(char *patientName)
 {
-    uint16_t len = strlen(patientName);
-    uint8_t index = hashFunction(patientName, len);
-    return (hashTable[index] != NULL && strcmp(hashTable[index]->name, patientName) == 0); // hashtable index is niet leeg. en hashtable index name is zelfde als inputnaam
+    return SelectPatient(patientName) != NULL; // hashtable index is niet leeg. en hashtable index name is zelfde als inputnaam
 }
 
 int8_t GetNumberOfMeasurements(char *patientName,

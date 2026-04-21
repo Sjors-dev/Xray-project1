@@ -24,8 +24,6 @@ typedef struct Patient {
     int doseCount;             // hoeveel er gevuld zijn
 } Patient;
 
-//extern Patient * hashTable[HASHTABLE_SIZE];
-
 
 //hashfunction!!
 uint8_t hashFunction(char * patientName);

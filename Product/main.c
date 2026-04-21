@@ -38,38 +38,9 @@ void userInputName(char *buffer)
     buffer[strcspn(buffer, "\n")] = 0;
 }
 
-Patient *selectPatientWithUi(char *patientName)
+Patient *selectPatient(char *patientName)
 {
-    Patient *matches[20];
-    int choice;
-    size_t matchCount = FindPatients(patientName, matches, 20);
-
-    if (matchCount == 0)
-    {
-        return NULL;
-    }
-
-    if (matchCount == 1)
-    {
-        return matches[0];
-    }
-
-    printf("Meerdere patiënten gevonden:\n");
-
-    for (size_t i = 0; i < matchCount; i++)
-    {
-        printf("[%zu] %s\n", i, matches[i]->name);
-    }
-
-    printf("Kies patiënt: ");
-    scanf("%d", &choice);
-
-    if (choice < 1 || choice > (int)matchCount)
-    {
-        return NULL;
-    }
-
-    return matches[choice];
+    return SelectPatient(patientName);
 }
 
 void handleDoseReception(CENTRAL_ACQUISITION_CONNECTION_STATE state)
@@ -108,7 +79,7 @@ void handleDeletePatient()
 
     userInputName(inputName);
 
-    Patient *tmp = selectPatientWithUi(inputName);
+    Patient *tmp = selectPatient(inputName);
 
     if (tmp == NULL)
     {
@@ -122,7 +93,7 @@ void handleDeletePatient()
     if (inputChoise == 0)
     {
         RemovePatient(inputName);
-        tmp = selectPatientWithUi(inputName);
+        tmp = selectPatient(inputName);
 
         if (tmp == NULL)
         {
@@ -169,10 +140,10 @@ void handleSelectPatient()
     char inputName[MAX_NAME];
     userInputName(inputName);
 
-    selected = selectPatientWithUi(inputName);
+    selected = selectPatient(inputName);
     if (selected == NULL)
     {
-        printf("Niks gevonden man");
+        printf("Niks gevonden.");
     }
     else
     {

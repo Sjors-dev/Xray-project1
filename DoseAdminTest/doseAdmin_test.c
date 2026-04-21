@@ -1,8 +1,8 @@
 #include <string.h>
+#include <stdlib.h>
 #include "doseAdmin.h"
 #include "doseAdmin_internal.h"
 #include "unity.h"
-#include <stdlib.h>
 
 #define MY_RUN_TEST(func) RUN_TEST(func, 0)
 
@@ -16,9 +16,7 @@ void tearDown(void)
     // This is run after EACH test
 }
 
-
 // AddPatient
-
 
 void addPatient_WhenNameTooLong_ThenReturnMinus3(void)
 {
@@ -35,7 +33,7 @@ void addPatient_WhenNameIsNull_ThenReturnMinus3(void)
 void addPatient_WhenPatientAlreadyPresent_ThenReturnMinus1(void)
 {
     CreatePatientDoseAdmin();
-    TEST_ASSERT_EQUAL(-1, AddPatient("John Doe")); // John Doe is added by CreatePatientDoseAdmin
+    TEST_ASSERT_EQUAL(-1, AddPatient("John Doe")); // John Doe is toegevoegd door CreatePatientDoseAdmin
 }
 
 void addPatient_WhenInputOk_ThenReturnZeroAndPatientIsAdded(void)
@@ -44,7 +42,7 @@ void addPatient_WhenInputOk_ThenReturnZeroAndPatientIsAdded(void)
     TEST_ASSERT_EQUAL(0, AddPatient("flip"));
 
     int index = hashFunction("flip");
-    Patient **temp = (Patient **)getHashTable();
+    Patient **temp = (Patient **)GetHashTable();
     TEST_ASSERT_EQUAL_STRING("flip", temp[index]->name);
 }
 
@@ -57,14 +55,12 @@ void addPatient_WhenMultiplePatientsAdded_ThenAllArePresent(void)
     TEST_ASSERT_EQUAL(1, IsPatientPresent("Bob"));
 }
 
-
 // IsPatientPresent
-
 
 void isPatientPresent_WhenPatientExists_ThenReturnOne(void)
 {
     CreatePatientDoseAdmin();
-    TEST_ASSERT_EQUAL(1, IsPatientPresent("John Doe")); // added by CreatePatientDoseAdmin
+    TEST_ASSERT_EQUAL(1, IsPatientPresent("John Doe")); // is al toegevoegd door CreatePatientDoseAdmin
 }
 
 void isPatientPresent_WhenPatientDoesNotExist_ThenReturnZero(void)
@@ -79,9 +75,7 @@ void isPatientPresent_WhenTableIsEmpty_ThenReturnZero(void)
     TEST_ASSERT_EQUAL(0, IsPatientPresent("John Doe"));
 }
 
-
 // RemovePatient
-
 
 void removePatient_WhenPatientExists_ThenPatientIsGone(void)
 {
@@ -100,16 +94,14 @@ void removePatient_WhenPatientDoesNotExist_ThenReturnMinus1(void)
 void removePatient_WhenPatientExists_ThenSlotIsNull(void)
 {
     CreatePatientDoseAdmin();
-    AddPatient("SlotTest");
-    int index = hashFunction("SlotTest");
-    RemovePatient("SlotTest");
-    Patient **temp = (Patient **)getHashTable();
+    AddPatient("Test");
+    int index = hashFunction("Test");
+    RemovePatient("Test");
+    Patient **temp = (Patient **)GetHashTable();
     TEST_ASSERT_NULL(temp[index]);
 }
 
-
 // RemoveAllDataFromPatientDoseAdmin
-
 
 void removeAll_WhenCalled_ThenTableIsEmpty(void)
 {
@@ -122,9 +114,7 @@ void removeAll_WhenCalled_ThenTableIsEmpty(void)
     TEST_ASSERT_EQUAL(0, IsPatientPresent("John Doe"));
 }
 
-
 // SelectPatient
-
 
 void selectPatient_WhenPatientExists_ThenReturnCorrectPatient(void)
 {
@@ -142,31 +132,29 @@ void selectPatient_WhenPatientDoesNotExist_ThenReturnNull(void)
     TEST_ASSERT_NULL(p);
 }
 
-
 // AddPatientDose
-
 
 void addPatientDose_WhenPatientExistsAndDoseValid_ThenReturnZero(void)
 {
     CreatePatientDoseAdmin();
-    AddPatient("DoseGuy");
+    AddPatient("DosePerson");
     Date d = {.day = 1, .month = 1, .year = 2024};
-    TEST_ASSERT_EQUAL(0, AddPatientDose("DoseGuy", &d, 100));
+    TEST_ASSERT_EQUAL(0, AddPatientDose("DosePerson", &d, 100));
 }
 
 void addPatientDose_WhenPatientExistsAndDoseValid_ThenDoseIsStored(void)
 {
     CreatePatientDoseAdmin();
-    AddPatient("DoseGuy2");
+    AddPatient("DosePerson2");
     Date d = {.day = 5, .month = 3, .year = 2024};
-    AddPatientDose("DoseGuy2", &d, 250);
+    AddPatientDose("DosePerson2", &d, 250);
 
-    Patient *p = SelectPatient("DoseGuy2");
+    Patient *p = SelectPatient("DosePerson2");
     TEST_ASSERT_NOT_NULL(p);
     TEST_ASSERT_EQUAL(1, p->doseCount);
     TEST_ASSERT_EQUAL(250, p->dosages[0].dose);
-    TEST_ASSERT_EQUAL(5,   p->dosages[0].doseDate.day);
-    TEST_ASSERT_EQUAL(3,   p->dosages[0].doseDate.month);
+    TEST_ASSERT_EQUAL(5, p->dosages[0].doseDate.day);
+    TEST_ASSERT_EQUAL(3, p->dosages[0].doseDate.month);
     TEST_ASSERT_EQUAL(2024, p->dosages[0].doseDate.year);
 }
 
@@ -193,9 +181,7 @@ void addPatientDose_WhenMultipleDosesAdded_ThenAllAreStored(void)
     TEST_ASSERT_EQUAL(200, p->dosages[1].dose);
 }
 
-
 // CreatePatientDoseAdmin
-
 
 void createPatientDoseAdmin_WhenCalled_ThenJohnDoeIsPresent(void)
 {
@@ -206,13 +192,11 @@ void createPatientDoseAdmin_WhenCalled_ThenJohnDoeIsPresent(void)
 void createPatientDoseAdmin_WhenCalledTwice_ThenOnlyOneJohnDoe(void)
 {
     CreatePatientDoseAdmin();
-    CreatePatientDoseAdmin(); // should reset and re-add John Doe once
+    CreatePatientDoseAdmin(); // Zou alles moeten verwijderen en John Doe een keer toevoegen
     TEST_ASSERT_EQUAL(1, IsPatientPresent("John Doe"));
 }
 
-
 // hashFunction
-
 
 void hashFunction_WhenSameName_ThenSameHash(void)
 {
@@ -223,13 +207,11 @@ void hashFunction_WhenDifferentNames_ThenResultInRange(void)
 {
     // result must always be within table bounds
     TEST_ASSERT_TRUE(hashFunction("Alice") < HASHTABLE_SIZE);
-    TEST_ASSERT_TRUE(hashFunction("Bob")   < HASHTABLE_SIZE);
+    TEST_ASSERT_TRUE(hashFunction("Bob") < HASHTABLE_SIZE);
     TEST_ASSERT_TRUE(hashFunction("XYZ123") < HASHTABLE_SIZE);
 }
 
-
 // main
-
 
 int main()
 {
