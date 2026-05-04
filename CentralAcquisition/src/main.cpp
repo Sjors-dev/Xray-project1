@@ -1,103 +1,220 @@
 #include <Arduino.h>
 #include <Wire.h>
 #include <avr/io.h>
-//#include "../../Interface_I2C/Protocol_I2C.h"
+#include <time.h>
+
+#include "../../Interface_I2C/Protocol_I2C.h"
 #include "../../Interface_PatAdmin_CentralAcq/Protocol_PatientAdmin_CentralAcq.h"
 
-// I2C
-#define GEO_ADDR   0x10
-#define XRAY_ADDR  0x20
+// buttons
+#define PREPARED_BUTTON 2
+volatile bool prepareButtonPressed = false;
 
-// LEDs
-#define PIN_PREPARED_LAMP  7
-#define PIN_ACQUIRING_LAMP 8
-#define RED_LED            9   // exam type set
-#define GREEN_LED          10  // NO_EXAM selected
+// preparing
+bool geoPrepared = false;
+bool xrayPrepared = false;
 
-// Buttons
-#define PIN_PREPARE_BTN    2
-#define PIN_XRAY_BTN       3
+unsigned long startTimePrepare = 0;
+unsigned long intervalPrepare = 1000; // 1 seconde
 
-// SAN bus (digitale draden)
-#define SAN_XRAY_ENABLED   4   // OUTPUT - hoog als xray actief
+enum State
+{
+    NOT_CONNECTED,
+    IDLE,
+    PREPARING,
+    PREPARED,
+    ACQUIRING
+};
 
+enum ExamType
+{
+    SINGLE_SHOT,
+    SERIES,
+    SERIES_WITH_MOTION,
+    FLUORO,
+    NONE
+};
 
-typedef enum {
-    STATE_NOT_CONNECTED,
-    STATE_IDLE,
-    STATE_PREPARING,
-    STATE_PREPARED,
-    STATE_ACQUIRING
-} CentralAcqState;
+ExamType currentExamType = NONE;
+State currentState = NOT_CONNECTED;
 
-//globale variablen
-CentralAcqState state = STATE_NOT_CONNECTED;
-bool prepBtnPressed = false;
-bool xrayBtnPressed = false;
-unsigned long preparingStartTime = 0;
+void buttonISR()
+{
+    prepareButtonPressed = true;
+}
 
+String readCmd()
+{
+    if (Serial.available())
+    {
+        if (Serial.read() == '$')
+        {
+            String cmd = Serial.readStringUntil('#');
+            return cmd;
+        }
+    }
+    return "";
+}
 
+void respondConnect()
+{
+    Serial.print("$CONNECT#");
+    return;
+}
 
+// I2C helpers
+void I2C_sendPrepare(uint8_t deviceAddr)
+{
+    uint8_t cmd = (CMD_PREPARE << CMD_SHIFT);
+    I2C_writeRegister(deviceAddr, REG_CMD, cmd);
+}
 
-void setup() {
+void I2C_sendUnprepare(uint8_t deviceAddr)
+{
+    uint8_t cmd = (CMD_UNPREPARE << CMD_SHIFT);
+    I2C_writeRegister(deviceAddr, REG_CMD, cmd);
+}
 
-    Wire.begin();  // master heeft geen adres
-    Wire.setClock(100000); // 100 kHz
+bool I2C_isPrepared(uint8_t statusReg)
+{
+    return ((statusReg & STATE_MASK) == STATE_PREPARED);
+}
+
+// state handlers
+void handlePrepare()
+{
+    if (currentExamType != NONE)
+    {
+        Serial.println("Prepare button pressed");
+
+        I2C_sendPrepare(GEO_I2C_ADDRESS);
+        I2C_sendPrepare(XRAY_I2C_ADDRESS);
+        startTimePrepare = millis();
+
+        currentState = PREPARING;
+    }
+}
+
+void handleUnprepare()
+{
+    if (currentState == PREPARING)
+    {
+        Serial.println("Prepare timeout reached. Unpreparing");
+
+        I2C_sendUnprepare(GEO_I2C_ADDRESS);
+        I2C_sendUnprepare(XRAY_I2C_ADDRESS);
+
+        currentState = IDLE;
+        PORTD |= (1 << 7); // LED ON
+    }
+}
+
+void handlePrepared()
+{
+    PORTD &= ~(1 << 7); // LED OFF
+}
+
+void handleLeds()
+{
+    if (currentExamType == NONE)
+    {
+        PORTD |= (1 << 7);
+        PORTD &= ~(1 << 6);
+    }
+    else
+    {
+        PORTD |= (1 << 6);
+        PORTD &= ~(1 << 7);
+    }
+}
+
+void setup()
+{
+    Wire.begin();
+
     Serial.begin(9600);
-    
-    Serial.println("Hoi!!");
-    DDRD |= (1 << PD7);   // Zet pin 7 as OUTPUT
+    Serial.println("Hello World");
+
+    DDRD |= (1 << PD7); // pin 7 output
+    DDRD |= (1 << PD6); // pin 6 output
+
+    pinMode(PREPARED_BUTTON, INPUT_PULLUP);
+
+    // interrupt op FALLING edge (knop naar GND)
+    attachInterrupt(digitalPinToInterrupt(PREPARED_BUTTON), buttonISR, FALLING);
 }
 
-// Schrijf een waarde naar een register op een slave
-void writeRegister(uint8_t deviceAddr, uint8_t reg, uint8_t value) {
-    Wire.beginTransmission(deviceAddr);
-    Wire.write(reg);    // selecteer register
-    Wire.write(value);  // schrijf waarde
-    Wire.endTransmission();
-}
-
-// Lees een register van een slave
-uint8_t readRegister(uint8_t deviceAddr, uint8_t reg) {
-    Wire.beginTransmission(deviceAddr);
-    Wire.write(reg);  // selecteer register
-    Wire.endTransmission(false);  // geen stop, repeated start
-    
-    Wire.requestFrom(deviceAddr, (uint8_t)1);
-    if (Wire.available()) {
-        return Wire.read();
+void loop()
+{
+    if (prepareButtonPressed == true)
+    {
+        prepareButtonPressed = false;
+        handlePrepare();
     }
-    return 0xFF;  // fout
-}
 
-// Stuur prepare command naar Geo en Xray
-void sendPrepare() {
-    writeRegister(GEO_ADDR,  0x08, 0x10);  // $8, cmd = 01 in bits 5:4
-    writeRegister(XRAY_ADDR, 0x08, 0x10); 
-}
+    String cmd = readCmd();
 
-void loop() {
-    
-    // Lees state van Geometry ($9)
-    uint8_t geoState = readRegister(GEO_ADDR, 0x09);
-    Serial.println(geoState);
-    
-    // Lees state van XrayGenerator ($9)
-    uint8_t xrayState = readRegister(XRAY_ADDR, 0x09);
-    Serial.println(xrayState);
+    switch (currentState)
+    {
+    case NOT_CONNECTED:
+        if (cmd == "CONNECT")
+        {
+            respondConnect();
+            currentState = IDLE;
+        }
+        break;
 
-    
-    // Check of beide prepared zijn (bits 7:6 == 10)
-    bool geoPrepared  = ((geoState  >> 6) & 0x03) == 0x02;
-    bool xrayPrepared = ((xrayState >> 6) & 0x03) == 0x02;
-    
-    if (!geoPrepared || !xrayPrepared) {
-        sendPrepare();
-        PORTD &= ~(1 << 7); // zet pin 7 LOW (LED uit)
+    case IDLE:
+        if (cmd == "0")
+        {
+            currentExamType = SINGLE_SHOT;
+        }
+        else if (cmd == "1")
+        {
+            currentExamType = SERIES;
+        }
+        else if (cmd == "2")
+        {
+            currentExamType = SERIES_WITH_MOTION;
+        }
+        else if (cmd == "3")
+        {
+            currentExamType = FLUORO;
+        }
+        else if (cmd == "4")
+        {
+            currentExamType = NONE;
+        }
+        break;
+
+    case PREPARING:
+    {
+        uint8_t geoState = I2C_readRegister(GEO_I2C_ADDRESS, REG_STATUS);
+        uint8_t xrayState = I2C_readRegister(XRAY_I2C_ADDRESS, REG_STATUS);
+
+        geoPrepared = I2C_isPrepared(geoState);
+        xrayPrepared = I2C_isPrepared(xrayState);
+
+        if (geoPrepared && xrayPrepared)
+        {
+            currentState = PREPARED;
+        }
+        else if ((!geoPrepared || !xrayPrepared) && (millis() - startTimePrepare >= intervalPrepare))
+        {
+            handleUnprepare();
+        }
+        break;
     }
-    else{
-        PORTD |= (1 << 7);  // zet pin 7 HIGH (LED aan)
+
+    case PREPARED:
+    {
+        handlePrepared();
+        break;
     }
-    
-    delay(500);  // alleen in master loop mag delay
+
+    case ACQUIRING:
+        break;
+    }
+
+    handleLeds();
 }

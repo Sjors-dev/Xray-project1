@@ -157,13 +157,9 @@ void handleSelectExam(CENTRAL_ACQUISITION_CONNECTION_STATE state)
     int inputExamType;
     int inputDose;
 
-    if (selected == NULL)
-    {
-        printf("Geen patient geselecteerd! Selecteer eerst een patient.\n");
-        return;
-    }
+    
 
-    if (state == NOT_CONNECTED_WITH_CENTRAL_ACQUISITION)
+    if (state == CONNECTED_WITH_CENTRAL_ACQUISITION)
     {
         printf("\nSelecteer onderzoekstype:\n");
         printf(" [0] Single Shot\n");
@@ -175,7 +171,7 @@ void handleSelectExam(CENTRAL_ACQUISITION_CONNECTION_STATE state)
 
         scanf("%d", &inputExamType);
 
-        // binnen de opties ofc
+        // binnen de opties 
         if (inputExamType >= 0 && inputExamType <= 4)
         {
             printf("Input dose amount: ");

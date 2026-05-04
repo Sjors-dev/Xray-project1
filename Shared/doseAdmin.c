@@ -7,7 +7,7 @@
 #include "doseAdmin_internal.h"
 
 static Patient *hashTable[HASHTABLE_SIZE]; // echte definitie
-void PrintHashTable(void);
+void PrintHashTable(void);  //Sjors todo gooi weg
 
 // hashen
 uint8_t hashFunction(char *patientName)

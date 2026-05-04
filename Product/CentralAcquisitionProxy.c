@@ -125,7 +125,7 @@ static bool setupSerialConnection()
 	do
 	{
 		char ttyName[30];
-		sprintf(ttyName, "/dev/ttyACM%d", ACMNumber);
+		sprintf(ttyName, "/dev/ttyUSB%d", ACMNumber);
 		if (setupSerialPort(ttyName) == 0)
 		{
 			printf("  ...connected with %s\n", ttyName);
