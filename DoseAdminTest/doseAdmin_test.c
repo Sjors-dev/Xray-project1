@@ -1,10 +1,12 @@
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include "doseAdmin.h"
 #include "doseAdmin_internal.h"
 #include "unity.h"
 
 #define MY_RUN_TEST(func) RUN_TEST(func, 0)
+#define COLLISION_SEARCH_LIMIT (5000)
 
 void setUp(void)
 {
@@ -14,6 +16,28 @@ void setUp(void)
 void tearDown(void)
 {
     // This is run after EACH test
+}
+
+static void findCollisionPair(char *nameA, size_t sizeA, char *nameB, size_t sizeB)
+{
+    // Zoek 2 verschillende namen die op dezelfde hash-index uitkomen.
+    for (int i = 0; i < COLLISION_SEARCH_LIMIT; i++)
+    {
+        snprintf(nameA, sizeA, "CollisionA_%d", i);
+        uint8_t hashA = hashFunction(nameA);
+
+        for (int j = i + 1; j < COLLISION_SEARCH_LIMIT; j++)
+        {
+            snprintf(nameB, sizeB, "CollisionB_%d", j);
+            if (hashFunction(nameB) == hashA)
+            {
+                return;
+            }
+        }
+    }
+
+    nameA[0] = '\0';
+    nameB[0] = '\0';
 }
 
 // AddPatient
@@ -95,10 +119,27 @@ void removePatient_WhenPatientExists_ThenSlotIsNull(void)
 {
     CreatePatientDoseAdmin();
     AddPatient("Test");
-    int index = hashFunction("Test");
     RemovePatient("Test");
-    Patient **temp = (Patient **)GetHashTable();
-    TEST_ASSERT_NULL(temp[index]);
+    TEST_ASSERT_NULL(SelectPatient("Test"));
+}
+
+void addPatient_WhenNamesCollide_ThenBothAreFound(void)
+{
+    CreatePatientDoseAdmin();
+
+    char nameA[MAX_PATIENTNAME_SIZE];
+    char nameB[MAX_PATIENTNAME_SIZE];
+    findCollisionPair(nameA, sizeof(nameA), nameB, sizeof(nameB));
+
+    TEST_ASSERT_TRUE(strlen(nameA) > 0);
+    TEST_ASSERT_TRUE(strlen(nameB) > 0);
+    TEST_ASSERT_EQUAL(hashFunction(nameA), hashFunction(nameB));
+
+    // Beide inserts moeten lukken als bucket-chaining aanstaat.
+    TEST_ASSERT_EQUAL(0, AddPatient(nameA));
+    TEST_ASSERT_EQUAL(0, AddPatient(nameB));
+    TEST_ASSERT_EQUAL(1, IsPatientPresent(nameA));
+    TEST_ASSERT_EQUAL(1, IsPatientPresent(nameB));
 }
 
 // RemoveAllDataFromPatientDoseAdmin
@@ -223,6 +264,7 @@ int main()
     MY_RUN_TEST(addPatient_WhenPatientAlreadyPresent_ThenReturnMinus1);
     MY_RUN_TEST(addPatient_WhenInputOk_ThenReturnZeroAndPatientIsAdded);
     MY_RUN_TEST(addPatient_WhenMultiplePatientsAdded_ThenAllArePresent);
+    MY_RUN_TEST(addPatient_WhenNamesCollide_ThenBothAreFound);
 
     // IsPatientPresent
     MY_RUN_TEST(isPatientPresent_WhenPatientExists_ThenReturnOne);

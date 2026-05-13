@@ -9,6 +9,22 @@
 static Patient *hashTable[HASHTABLE_SIZE]; // echte definitie
 void PrintHashTable(void);  //Sjors todo gooi weg
 
+static Patient *FindPatientInBucket(uint8_t index, char *patientName)
+{
+    // Loop door 1 bucket-lijst en pak de eerste exacte naam-match.
+    Patient *current = hashTable[index];
+    while (current != NULL)
+    {
+        if (strcmp(current->name, patientName) == 0)
+        {
+            return current;
+        }
+        current = current->next;
+    }
+
+    return NULL;
+}
+
 // hashen
 uint8_t hashFunction(char *patientName)
 {
@@ -39,10 +55,15 @@ void RemoveAllDataFromPatientDoseAdmin()
 {
     for (int i = 0; i < HASHTABLE_SIZE; i++)
     {
-        if (hashTable[i] != NULL)
+        //Check nexts en zet null
+        Patient *current = hashTable[i];
+        while (current != NULL)
         {
-            RemovePatient(hashTable[i]->name);
+            Patient *next = current->next;
+            free(current);
+            current = next;
         }
+        hashTable[i] = NULL;
     }
 }
 
@@ -52,11 +73,25 @@ void PrintHashTable()
     printf("Table Start: \n");
     for (int i = 0; i < HASHTABLE_SIZE; i++)
     {
-        if (hashTable[i] != NULL)
+        printf("\t%i - ", i);
+        Patient *current = hashTable[i];
+        
+        while (current != NULL)
         {
-            printf("\t%i\t%s\n", i, hashTable[i]->name);
-            printf("\t| \n");
+            
+            if (current->next != NULL)
+            {
+                printf("%s -> ", current->name);
+                
+            }
+            else{
+                printf("%s \n", current->name);
+            }
+            
+            
+            current = current->next;
         }
+        printf("\n");
     }
 }
 
@@ -68,24 +103,9 @@ int8_t AddPatient(char *patientName)
         return -3;
 
     uint8_t index = hashFunction(patientName);
-    uint8_t nextIndex = (index + 1) % HASHTABLE_SIZE;
-
-    if ((hashTable[index] != NULL && strcmp(hashTable[index]->name, patientName) == 0) ||
-        (hashTable[nextIndex] != NULL && strcmp(hashTable[nextIndex]->name, patientName) == 0))
+    if (FindPatientInBucket(index, patientName) != NULL)
     {
         return -1;
-    }
-
-    if (hashTable[index] != NULL)
-    {
-        if (hashTable[nextIndex] == NULL)
-        {
-            index = nextIndex;
-        }
-        else
-        {
-            return -4;
-        }
     }
 
     Patient *p = calloc(1, sizeof(Patient)); // memory allocate op basis van grootte struct
@@ -95,6 +115,8 @@ int8_t AddPatient(char *patientName)
 
     strncpy(p->name, patientName, (MAX_PATIENTNAME_SIZE - 1)); // kopieer struct op basis van input name
 
+    // Zet nieuwe patient vooraan in de bucket.
+    p->next = hashTable[index];
     hashTable[index] = p; // sla op
 
     return 0;
@@ -108,18 +130,25 @@ size_t FindPatients(char *patientName, Patient **matches, size_t maxMatches)
         return 0;
     }
 
-    Patient *patient = SelectPatient(patientName);
-    if (patient == NULL)
+    uint8_t index = hashFunction(patientName);
+    size_t found = 0;
+
+    // Tel alle patients met deze naam in dezelfde bucket-lijst.
+    Patient *current = hashTable[index];
+    while (current != NULL)
     {
-        return 0;
+        if (strcmp(current->name, patientName) == 0)
+        {
+            if (matches != NULL && found < maxMatches)
+            {
+                matches[found] = current;
+            }
+            found++;
+        }
+        current = current->next;
     }
 
-    if (matches != NULL && maxMatches > 0)
-    {
-        matches[0] = patient;
-    }
-
-    return 1;
+    return found;
 }
 
 // select een patient
@@ -131,19 +160,7 @@ Patient *SelectPatient(char *patientName)
     }
 
     uint8_t index = hashFunction(patientName);
-    uint8_t nextIndex = (index + 1) % HASHTABLE_SIZE;
-
-    if (hashTable[index] != NULL && strcmp(hashTable[index]->name, patientName) == 0)
-    {
-        return hashTable[index];
-    }
-
-    if (hashTable[nextIndex] != NULL && strcmp(hashTable[nextIndex]->name, patientName) == 0)
-    {
-        return hashTable[nextIndex];
-    }
-
-    return NULL;
+    return FindPatientInBucket(index, patientName);
 }
 
 int8_t AddPatientDose(char *patientName, Date *date, uint16_t dose)
@@ -185,20 +202,29 @@ int8_t RemovePatient(char *patientName)
     }
 
     uint8_t index = hashFunction(patientName);
-    uint8_t nextIndex = (index + 1) % HASHTABLE_SIZE;
+    Patient *current = hashTable[index];
+    Patient *previous = NULL;
 
-    if (hashTable[index] != NULL && strcmp(hashTable[index]->name, patientName) == 0)
+    // Haal 1 matchende node los uit de bucket-lijst.
+    while (current != NULL)
     {
-        free(hashTable[index]);
-        hashTable[index] = NULL;
-        return 0;
-    }
+        if (strcmp(current->name, patientName) == 0)
+        {
+            if (previous == NULL)
+            {
+                hashTable[index] = current->next;
+            }
+            else
+            {
+                previous->next = current->next;
+            }
 
-    if (hashTable[nextIndex] != NULL && strcmp(hashTable[nextIndex]->name, patientName) == 0)
-    {
-        free(hashTable[nextIndex]);
-        hashTable[nextIndex] = NULL;
-        return 0;
+            free(current);
+            return 0;
+        }
+
+        previous = current;
+        current = current->next;
     }
 
     return -1;

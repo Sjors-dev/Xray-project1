@@ -22,6 +22,7 @@ typedef struct Patient {
     char name[MAX_PATIENTNAME_SIZE];
     Dosage dosages[MAX_DOSES]; // lijst van dosages
     int doseCount;             // hoeveel er gevuld zijn
+    struct Patient *next;      // next patient in the same hash bucket
 } Patient;
 
 
@@ -29,7 +30,7 @@ typedef struct Patient {
 uint8_t hashFunction(char * patientName);
 
 //print print print
-void * getHashTable();
+void *GetHashTable(void);
 
 
 

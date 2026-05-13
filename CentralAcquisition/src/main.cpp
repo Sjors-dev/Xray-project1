@@ -1,48 +1,26 @@
-#include <Arduino.h>
-#include <Wire.h>
-#include <avr/io.h>
-#include <time.h>
+#include "centralAcquisition_defines.h"
 
-#include "../../Interface_I2C/Protocol_I2C.h"
-#include "../../Interface_PatAdmin_CentralAcq/Protocol_PatientAdmin_CentralAcq.h"
-
-// buttons
-#define PREPARED_BUTTON 2
+// globale vars
 volatile bool prepareButtonPressed = false;
+volatile bool acquireButtonPressed = false;
 
-// preparing
 bool geoPrepared = false;
 bool xrayPrepared = false;
 
 unsigned long startTimePrepare = 0;
-unsigned long intervalPrepare = 1000; // 1 seconde
 
-enum State
-{
-    NOT_CONNECTED,
-    IDLE,
-    PREPARING,
-    PREPARED,
-    ACQUIRING
-};
-
-enum ExamType
-{
-    SINGLE_SHOT,
-    SERIES,
-    SERIES_WITH_MOTION,
-    FLUORO,
-    NONE
-};
-
+State    currentState    = NOT_CONNECTED;
 ExamType currentExamType = NONE;
-State currentState = NOT_CONNECTED;
 
-void buttonISR()
-{
-    prepareButtonPressed = true;
+// ISRs
+void prepareISR() { prepareButtonPressed = true; }
+
+void acquireISR() {
+    acquireButtonPressed = !acquireButtonPressed;
 }
 
+
+// serial
 String readCmd()
 {
     if (Serial.available())
@@ -59,10 +37,9 @@ String readCmd()
 void respondConnect()
 {
     Serial.print("$CONNECT#");
-    return;
 }
 
-// I2C helpers
+// I2C
 void I2C_sendPrepare(uint8_t deviceAddr)
 {
     uint8_t cmd = (CMD_PREPARE << CMD_SHIFT);
@@ -80,6 +57,47 @@ bool I2C_isPrepared(uint8_t statusReg)
     return ((statusReg & STATE_MASK) == STATE_PREPARED);
 }
 
+// LEDs
+void controlLed(uint8_t pin, bool on)
+{
+    if (pin <= 7)
+    {
+        if (on) { PORTD |= (1 << pin); }
+        else    { PORTD &= ~(1 << pin); }
+    }
+    else if (pin <= 13)
+    {
+        if (on) { PORTB |= (1 << (pin - 8)); }
+        else    { PORTB &= ~(1 << (pin - 8)); }
+    }
+    else if (pin <= 19)
+    {
+        if (on) { PORTC |= (1 << (pin - 14)); }
+        else    { PORTC &= ~(1 << (pin - 14)); }
+    }
+}
+
+void handleLedStates()
+{
+    if (currentExamType == NONE)
+    {
+        controlLed(IDLE_LED_PIN, true);
+        controlLed(PREPARED_LED_PIN, false);
+    }
+    else if (currentState == PREPARED || currentState == PREPARING)
+    {
+        controlLed(PREPARED_LED_PIN, true);
+        controlLed(IDLE_LED_PIN, false);
+    }
+    else if(SAN_XRAY_ENABLED_PIN == HIGH)
+    {
+        // pin 6 (SAN_XRAY_ENABLED_PIN) hoog is automatisch led aan. 
+        controlLed(IDLE_LED_PIN, false);
+        controlLed(PREPARED_LED_PIN, false);
+        
+    }
+}
+
 // state handlers
 void handlePrepare()
 {
@@ -92,42 +110,36 @@ void handlePrepare()
         startTimePrepare = millis();
 
         currentState = PREPARING;
+        digitalWrite(SAN_XRAY_ENABLED_PIN, HIGH);
+    }
+}
+
+void handleAcquire()
+{
+    if (currentState == PREPARED && currentExamType != NONE)
+    {
+        Serial.println("Acquire button pressed");
+        currentState = ACQUIRING;
     }
 }
 
 void handleUnprepare()
 {
-    if (currentState == PREPARING)
-    {
-        Serial.println("Prepare timeout reached. Unpreparing");
+    Serial.println("Prepare timeout reached. Unpreparing");
 
-        I2C_sendUnprepare(GEO_I2C_ADDRESS);
-        I2C_sendUnprepare(XRAY_I2C_ADDRESS);
+    I2C_sendUnprepare(GEO_I2C_ADDRESS);
+    I2C_sendUnprepare(XRAY_I2C_ADDRESS);
 
-        currentState = IDLE;
-        PORTD |= (1 << 7); // LED ON
-    }
+    currentState = IDLE;
+    PORTD |= (1 << SAN_XRAY_ENABLED_PIN);
 }
 
 void handlePrepared()
 {
-    PORTD &= ~(1 << 7); // LED OFF
+    PORTD &= ~(1 << SAN_XRAY_ENABLED_PIN);
 }
 
-void handleLeds()
-{
-    if (currentExamType == NONE)
-    {
-        PORTD |= (1 << 7);
-        PORTD &= ~(1 << 6);
-    }
-    else
-    {
-        PORTD |= (1 << 6);
-        PORTD &= ~(1 << 7);
-    }
-}
-
+// setup & loop
 void setup()
 {
     Wire.begin();
@@ -135,13 +147,16 @@ void setup()
     Serial.begin(9600);
     Serial.println("Hello World");
 
-    DDRD |= (1 << PD7); // pin 7 output
-    DDRD |= (1 << PD6); // pin 6 output
+    //define outputs
+    DDRD |= (1 << SAN_XRAY_ENABLED_PIN);
+    DDRD |= (1 << PREPARED_LED_PIN);
+    DDRD |= (1 << IDLE_LED_PIN);
 
-    pinMode(PREPARED_BUTTON, INPUT_PULLUP);
+    pinMode(PREPARE_BUTTON, INPUT_PULLUP);
+    pinMode(ACQUIRE_BUTTON, INPUT_PULLUP);
 
-    // interrupt op FALLING edge (knop naar GND)
-    attachInterrupt(digitalPinToInterrupt(PREPARED_BUTTON), buttonISR, FALLING);
+    attachInterrupt(digitalPinToInterrupt(PREPARE_BUTTON), prepareISR, FALLING);
+    attachInterrupt(digitalPinToInterrupt(ACQUIRE_BUTTON), acquireISR, CHANGE);
 }
 
 void loop()
@@ -150,6 +165,15 @@ void loop()
     {
         prepareButtonPressed = false;
         handlePrepare();
+    }
+    else if (acquireButtonPressed == true && currentState == PREPARED)
+    {
+        acquireButtonPressed = false;
+        handleAcquire();
+    }
+
+    else if(acquireButtonPressed == false && currentState == ACQUIRING){
+        //LOGIC
     }
 
     String cmd = readCmd();
@@ -189,17 +213,17 @@ void loop()
 
     case PREPARING:
     {
-        uint8_t geoState = I2C_readRegister(GEO_I2C_ADDRESS, REG_STATUS);
+        uint8_t geoState  = I2C_readRegister(GEO_I2C_ADDRESS,  REG_STATUS);
         uint8_t xrayState = I2C_readRegister(XRAY_I2C_ADDRESS, REG_STATUS);
 
-        geoPrepared = I2C_isPrepared(geoState);
+        geoPrepared  = I2C_isPrepared(geoState);
         xrayPrepared = I2C_isPrepared(xrayState);
 
         if (geoPrepared && xrayPrepared)
         {
             currentState = PREPARED;
         }
-        else if ((!geoPrepared || !xrayPrepared) && (millis() - startTimePrepare >= intervalPrepare))
+        else if ((!geoPrepared || !xrayPrepared) && (millis() - startTimePrepare >= PREPARE_TIMEOUT_MS))
         {
             handleUnprepare();
         }
@@ -216,5 +240,5 @@ void loop()
         break;
     }
 
-    handleLeds();
+    handleLedStates();
 }

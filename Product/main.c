@@ -9,7 +9,7 @@
 
 #define MAX_NAME 256
 
-void *PrintHashTable(void);
+void PrintHashTable(void);
 Patient *selected = NULL;
 
 typedef enum
