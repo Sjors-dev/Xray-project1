@@ -7,7 +7,6 @@
 #include "doseAdmin_internal.h"
 
 static Patient *hashTable[HASHTABLE_SIZE]; // echte definitie
-void PrintHashTable(void);  //Sjors todo gooi weg
 
 static Patient *FindPatientInBucket(uint8_t index, char *patientName)
 {
@@ -49,6 +48,8 @@ void CreatePatientDoseAdmin()
     // alles null en een johndoe toevoegen
     RemoveAllDataFromPatientDoseAdmin();
     AddPatient("John Doe");
+
+    // set jon doe als selected patient
 }
 
 void RemoveAllDataFromPatientDoseAdmin()
@@ -67,33 +68,7 @@ void RemoveAllDataFromPatientDoseAdmin()
     }
 }
 
-// print
-void PrintHashTable()
-{
-    printf("Table Start: \n");
-    for (int i = 0; i < HASHTABLE_SIZE; i++)
-    {
-        printf("\t%i - ", i);
-        Patient *current = hashTable[i];
-        
-        while (current != NULL)
-        {
-            
-            if (current->next != NULL)
-            {
-                printf("%s -> ", current->name);
-                
-            }
-            else{
-                printf("%s \n", current->name);
-            }
-            
-            
-            current = current->next;
-        }
-        printf("\n");
-    }
-}
+
 
 int8_t AddPatient(char *patientName)
 {
@@ -111,7 +86,7 @@ int8_t AddPatient(char *patientName)
     Patient *p = calloc(1, sizeof(Patient)); // memory allocate op basis van grootte struct
 
     if (!p)
-        return -2; // ehh geen patient?
+        return -2; 
 
     strncpy(p->name, patientName, (MAX_PATIENTNAME_SIZE - 1)); // kopieer struct op basis van input name
 
@@ -122,37 +97,9 @@ int8_t AddPatient(char *patientName)
     return 0;
 }
 
-// select een patient
-size_t FindPatients(char *patientName, Patient **matches, size_t maxMatches)
-{
-    if (patientName == NULL)
-    {
-        return 0;
-    }
-
-    uint8_t index = hashFunction(patientName);
-    size_t found = 0;
-
-    // Tel alle patients met deze naam in dezelfde bucket-lijst.
-    Patient *current = hashTable[index];
-    while (current != NULL)
-    {
-        if (strcmp(current->name, patientName) == 0)
-        {
-            if (matches != NULL && found < maxMatches)
-            {
-                matches[found] = current;
-            }
-            found++;
-        }
-        current = current->next;
-    }
-
-    return found;
-}
 
 // select een patient
-Patient *SelectPatient(char *patientName)
+Patient *SelectPatient(char *patientName) // geen return van patient ptr
 {
     if (patientName == NULL)
     {
@@ -163,7 +110,7 @@ Patient *SelectPatient(char *patientName)
     return FindPatientInBucket(index, patientName);
 }
 
-int8_t AddPatientDose(char *patientName, Date *date, uint16_t dose)
+int8_t AddPatientDose(char *patientName, Date *date, uint16_t dose)   // geen patientName
 {
     if (IsPatientPresent(patientName) == 1)
     {
@@ -205,7 +152,7 @@ int8_t RemovePatient(char *patientName)
     Patient *current = hashTable[index];
     Patient *previous = NULL;
 
-    // Haal 1 matchende node los uit de bucket-lijst.
+    
     while (current != NULL)
     {
         if (strcmp(current->name, patientName) == 0)

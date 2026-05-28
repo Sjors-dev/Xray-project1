@@ -1,22 +1,56 @@
 #include "centralAcquisition_defines.h"
 
 // globale vars
-volatile bool prepareButtonPressed = false;
-volatile bool acquireButtonPressed = false;
+volatile bool prepareButtonPressed  = false;
+volatile bool prepareButtonReleased = false;
+volatile bool acquireButtonPressed  = false;
 
-bool geoPrepared = false;
+bool geoPrepared  = false;
 bool xrayPrepared = false;
 
-unsigned long startTimePrepare = 0;
+bool sanXrayEnabled = false;  // SAN_XRAY_ENABLED 
+
+unsigned long startTimePrepare    = 0;
+unsigned long lastDebouncePrep    = 0;
+unsigned long lastDebounceAcq     = 0;
+
+bool lastPrepareButtonState = HIGH;
+bool lastAcquireButtonState = HIGH;
+bool prepareButtonState     = HIGH;
+bool acquireButtonState     = HIGH;
 
 State    currentState    = NOT_CONNECTED;
-ExamType currentExamType = NONE;
+EXAMINATION_TYPES currentExamType = EXAM_TYPE_NONE;
 
 // ISRs
-void prepareISR() { prepareButtonPressed = true; }
+void prepareISR()
+{
+    bool reading = (PIND & (1 << PREPARE_BUTTON)) != 0;
 
-void acquireISR() {
-    acquireButtonPressed = !acquireButtonPressed;
+    if ((millis() - lastDebouncePrep) > DEBOUNCE_DELAY_MS)
+    {
+        if (reading == LOW && lastPrepareButtonState == HIGH)
+        {
+            prepareButtonPressed = true;
+        }
+        else if (reading == HIGH && lastPrepareButtonState == LOW)
+        {
+            prepareButtonReleased = true;
+        }
+        lastPrepareButtonState = reading;
+        lastDebouncePrep = millis();
+    }
+}
+
+void acquireISR()
+{
+    bool reading = (PIND & (1 << ACQUIRE_BUTTON)) != 0;
+    if ((millis() - lastDebounceAcq) > DEBOUNCE_DELAY_MS)
+    {
+        acquireButtonPressed = (reading == LOW);
+        lastAcquireButtonState = reading;
+        lastDebounceAcq = millis();
+    }
 }
 
 
@@ -39,6 +73,23 @@ void respondConnect()
     Serial.print("$CONNECT#");
 }
 
+void respondAck()
+{
+    Serial.print("$ACK#");
+}
+
+void respondNack()
+{
+    Serial.print("$NACK#");
+}
+
+void sendDoseToPatientAdmin(uint8_t dose)
+{
+    Serial.print("$DOSE:");
+    Serial.print(dose);
+    Serial.print("#");
+}
+
 // I2C
 void I2C_sendPrepare(uint8_t deviceAddr)
 {
@@ -52,9 +103,22 @@ void I2C_sendUnprepare(uint8_t deviceAddr)
     I2C_writeRegister(deviceAddr, REG_CMD, cmd);
 }
 
+void I2C_sendExamType(uint8_t deviceAddr, EXAMINATION_TYPES type)
+{
+    uint8_t reg = I2C_readRegister(deviceAddr, REG_STATUS);
+    uint8_t val = examTypeToI2C(type);
+    reg = (reg & ~EXAM_TYPE_MASK) | ((val << EXAM_TYPE_SHIFT) & EXAM_TYPE_MASK);
+    I2C_writeRegister(deviceAddr, REG_STATUS, reg);
+}
+
 bool I2C_isPrepared(uint8_t statusReg)
 {
     return ((statusReg & STATE_MASK) == STATE_PREPARED);
+}
+
+uint8_t I2C_getDose()
+{
+    return I2C_readRegister(XRAY_I2C_ADDRESS, REG_DOSE);
 }
 
 // LEDs
@@ -77,31 +141,51 @@ void controlLed(uint8_t pin, bool on)
     }
 }
 
+void allLedsOff()
+{
+    controlLed(IDLE_LED_PIN,     false);
+    controlLed(PREPARED_LED_PIN, false);
+    controlLed(ACQUIRING_LED_PIN, false);
+}
+
 void handleLedStates()
 {
-    if (currentExamType == NONE)
+    if (currentState == NOT_CONNECTED || currentState == IDLE)
     {
-        controlLed(IDLE_LED_PIN, true);
-        controlLed(PREPARED_LED_PIN, false);
+        // green on = no exam type set
+        controlLed(IDLE_LED_PIN,      currentExamType == EXAM_TYPE_NONE);
+        // red on = exam type IS set
+        controlLed(PREPARED_LED_PIN,  currentExamType != EXAM_TYPE_NONE);
+        controlLed(ACQUIRING_LED_PIN, false);
     }
-    else if (currentState == PREPARED || currentState == PREPARING)
+    else if (currentState == PREPARING || currentState == PREPARED)
     {
-        controlLed(PREPARED_LED_PIN, true);
-        controlLed(IDLE_LED_PIN, false);
+        controlLed(IDLE_LED_PIN,      false);
+        controlLed(PREPARED_LED_PIN,  true);   // Prepared Lamp on
+        controlLed(ACQUIRING_LED_PIN, false);
     }
-    else if(SAN_XRAY_ENABLED_PIN == HIGH)
+    else if (currentState == ACQUIRING)
     {
-        // pin 6 (SAN_XRAY_ENABLED_PIN) hoog is automatisch led aan. 
-        controlLed(IDLE_LED_PIN, false);
-        controlLed(PREPARED_LED_PIN, false);
-        
+        controlLed(IDLE_LED_PIN,      false);
+        controlLed(PREPARED_LED_PIN,  false);  // Prepared Lamp off
+        controlLed(ACQUIRING_LED_PIN, true);   // Acquiring Lamp on
     }
 }
+
+EXAMINATION_TYPES readExamType(const String& cmd)
+{
+    if (cmd == "0") return EXAM_TYPE_SINGLE_SHOT;
+    if (cmd == "1") return EXAM_TYPE_SERIES;
+    if (cmd == "2") return EXAM_TYPE_SERIES_WITH_MOTION;
+    if (cmd == "3") return EXAM_TYPE_FLUORO;
+    return EXAM_TYPE_NONE;
+}
+
 
 // state handlers
 void handlePrepare()
 {
-    if (currentExamType != NONE)
+    if (currentExamType != EXAM_TYPE_NONE)
     {
         Serial.println("Prepare button pressed");
 
@@ -110,17 +194,41 @@ void handlePrepare()
         startTimePrepare = millis();
 
         currentState = PREPARING;
-        digitalWrite(SAN_XRAY_ENABLED_PIN, HIGH);
     }
 }
 
 void handleAcquire()
 {
-    if (currentState == PREPARED && currentExamType != NONE)
+    if (currentState == PREPARED && currentExamType != EXAM_TYPE_NONE)
     {
         Serial.println("Acquire button pressed");
+
+        // set SAN_XRAY_ENABLED high and track it
+        PORTD |= (1 << SAN_XRAY_ENABLED_PIN);
+        sanXrayEnabled = true;
+
         currentState = ACQUIRING;
     }
+}
+
+void handleAcquireDone()
+{
+    Serial.println("Acquire button released");
+
+    // set SAN_XRAY_ENABLED low
+    PORTD &= ~(1 << SAN_XRAY_ENABLED_PIN);
+    sanXrayEnabled = false;
+
+    // retrieve dose from XrayGenerator and pass to PatientAdministration
+    uint8_t dose = I2C_getDose();
+    sendDoseToPatientAdmin(dose);
+
+    // reset exam type and pass it to Geometry and XrayGenerator
+    currentExamType = EXAM_TYPE_NONE;
+    I2C_sendExamType(GEO_I2C_ADDRESS,  currentExamType);
+    I2C_sendExamType(XRAY_I2C_ADDRESS, currentExamType);
+
+    currentState = IDLE;
 }
 
 void handleUnprepare()
@@ -131,53 +239,31 @@ void handleUnprepare()
     I2C_sendUnprepare(XRAY_I2C_ADDRESS);
 
     currentState = IDLE;
-    PORTD |= (1 << SAN_XRAY_ENABLED_PIN);
+    PORTD &= ~(1 << SAN_XRAY_ENABLED_PIN);
+    sanXrayEnabled = false;
 }
 
 void handlePrepared()
 {
+    // Prepared Lamp is handled in handleLedStates()
+    Serial.println("System prepared");
+}
+
+void handleDisconnect()
+{
+    Serial.println("Disconnect received");
+
+    allLedsOff();
+
     PORTD &= ~(1 << SAN_XRAY_ENABLED_PIN);
+    sanXrayEnabled = false;
+
+    currentExamType = EXAM_TYPE_NONE;
+    currentState    = NOT_CONNECTED;
 }
 
-// setup & loop
-void setup()
+void handleEvent(const String& cmd)
 {
-    Wire.begin();
-
-    Serial.begin(9600);
-    Serial.println("Hello World");
-
-    //define outputs
-    DDRD |= (1 << SAN_XRAY_ENABLED_PIN);
-    DDRD |= (1 << PREPARED_LED_PIN);
-    DDRD |= (1 << IDLE_LED_PIN);
-
-    pinMode(PREPARE_BUTTON, INPUT_PULLUP);
-    pinMode(ACQUIRE_BUTTON, INPUT_PULLUP);
-
-    attachInterrupt(digitalPinToInterrupt(PREPARE_BUTTON), prepareISR, FALLING);
-    attachInterrupt(digitalPinToInterrupt(ACQUIRE_BUTTON), acquireISR, CHANGE);
-}
-
-void loop()
-{
-    if (prepareButtonPressed == true)
-    {
-        prepareButtonPressed = false;
-        handlePrepare();
-    }
-    else if (acquireButtonPressed == true && currentState == PREPARED)
-    {
-        acquireButtonPressed = false;
-        handleAcquire();
-    }
-
-    else if(acquireButtonPressed == false && currentState == ACQUIRING){
-        //LOGIC
-    }
-
-    String cmd = readCmd();
-
     switch (currentState)
     {
     case NOT_CONNECTED:
@@ -189,30 +275,30 @@ void loop()
         break;
 
     case IDLE:
-        if (cmd == "0")
+        if (cmd == "DISCONNECT")
         {
-            currentExamType = SINGLE_SHOT;
+            handleDisconnect();
+            break;
         }
-        else if (cmd == "1")
+
+        if (cmd != "")
         {
-            currentExamType = SERIES;
-        }
-        else if (cmd == "2")
-        {
-            currentExamType = SERIES_WITH_MOTION;
-        }
-        else if (cmd == "3")
-        {
-            currentExamType = FLUORO;
-        }
-        else if (cmd == "4")
-        {
-            currentExamType = NONE;
+            // exam type selection only valid in IDLE
+            currentExamType = readExamType(cmd);
+            I2C_sendExamType(GEO_I2C_ADDRESS,  currentExamType);
+            I2C_sendExamType(XRAY_I2C_ADDRESS, currentExamType);
+            respondAck();
         }
         break;
 
     case PREPARING:
     {
+        if (cmd == "DISCONNECT")
+        {
+            handleDisconnect();
+            break;
+        }
+
         uint8_t geoState  = I2C_readRegister(GEO_I2C_ADDRESS,  REG_STATUS);
         uint8_t xrayState = I2C_readRegister(XRAY_I2C_ADDRESS, REG_STATUS);
 
@@ -221,9 +307,10 @@ void loop()
 
         if (geoPrepared && xrayPrepared)
         {
+            handlePrepared();
             currentState = PREPARED;
         }
-        else if ((!geoPrepared || !xrayPrepared) && (millis() - startTimePrepare >= PREPARE_TIMEOUT_MS))
+        else if (millis() - startTimePrepare >= PREPARE_TIMEOUT_MS)
         {
             handleUnprepare();
         }
@@ -231,14 +318,91 @@ void loop()
     }
 
     case PREPARED:
-    {
-        handlePrepared();
+        if (cmd == "DISCONNECT")
+        {
+            handleDisconnect();
+            break;
+        }
         break;
-    }
 
     case ACQUIRING:
+        if (cmd == "DISCONNECT")
+        {
+            handleDisconnect();
+            break;
+        }
         break;
     }
+}
+
+// handle non-idle exam type cmd: reply NACK
+void handleExamTypeCmdIfNotIdle(const String& cmd)
+{
+    if (cmd != "" && cmd != "CONNECT" && cmd != "DISCONNECT")
+    {
+        if (currentState != IDLE)
+        {
+            respondNack();
+        }
+    }
+}
+
+// setup & loop
+void setup()
+{
+    Wire.begin();
+
+    Serial.begin(9600);
+    Serial.println("Hello World");
+
+    // define outputs
+    DDRD |= (1 << SAN_XRAY_ENABLED_PIN);
+    DDRD |= (1 << PREPARED_LED_PIN);
+    DDRD |= (1 << IDLE_LED_PIN);
+    DDRD |= (1 << ACQUIRING_LED_PIN);
+
+    pinMode(PREPARE_BUTTON, INPUT_PULLUP);
+    pinMode(ACQUIRE_BUTTON, INPUT_PULLUP);
+
+    attachInterrupt(digitalPinToInterrupt(PREPARE_BUTTON), prepareISR, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(ACQUIRE_BUTTON), acquireISR, CHANGE);
+}
+
+void loop()
+{
+    // prepare button pressed
+    if (prepareButtonPressed == true && currentState == IDLE)
+    {
+        prepareButtonPressed = false;
+        handlePrepare();
+    }
+
+    // prepare button released while preparing -> unprepare 
+    if (prepareButtonReleased == true && currentState == PREPARING)
+    {
+        prepareButtonReleased = false;
+        handleUnprepare();
+    }
+    prepareButtonReleased = false;  // clear in all other states
+
+    // acquire button pressed while prepared -> start acquiring
+    if (acquireButtonPressed == true && currentState == PREPARED)
+    {
+        handleAcquire();
+    }
+
+    // acquire button released while acquiring -> finish acquiring 
+    if (acquireButtonPressed == false && currentState == ACQUIRING)
+    {
+        handleAcquireDone();
+    }
+
+    String cmd = readCmd();
+
+    // if not in idle and an exam type cmd comes in, send NACK
+    handleExamTypeCmdIfNotIdle(cmd);
+
+    handleEvent(cmd);
 
     handleLedStates();
 }

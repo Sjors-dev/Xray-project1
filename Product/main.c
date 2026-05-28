@@ -259,10 +259,6 @@ int main(int argc, char *argv[])
                 handleDeletePatient();
                 break;
 
-            case MO_SHOW_TABLE:
-                PrintHashTable();
-                break;
-
             case MO_SELECT_PATIENT:
                 handleSelectPatient();
                 break;

@@ -19,7 +19,7 @@ typedef struct {
 } Dosage;
 
 typedef struct Patient {
-    char name[MAX_PATIENTNAME_SIZE];
+    char name[MAX_PATIENTNAME_SIZE + 1];
     Dosage dosages[MAX_DOSES]; // lijst van dosages
     int doseCount;             // hoeveel er gevuld zijn
     struct Patient *next;      // next patient in the same hash bucket
