@@ -2,7 +2,7 @@
 #include <Wire.h>
 #include "xray_internal.h"
 
-// ---------------- STATE ----------------
+//  STATE 
 XrayState currentState = XRAY_IDLE;
 
 uint8_t reg_status = 0;
@@ -13,17 +13,17 @@ unsigned long stateStartTime = 0;
 unsigned long waitDuration = 0;
 unsigned long lastPulseTime = 0;
 
-// ---------------- PULSE ENGINE ----------------
+//  PULSE ENGINE 
 bool pulseActive = false;
 unsigned long pulseStartTime = 0;
 unsigned long pulseDuration = 0;
 uint8_t pulsePower = 0;
 
-// ---------------- DOSE ----------------
+//  DOSE 
 int doseSamples[MA_SIZE] = {0};
 int sampleIndex = 0;
 
-// ---------------- DOSE UPDATE ----------------
+//  DOSE UPDATE 
 void updateDose()
 {
     int val = analogRead(DOSE_LDR_PIN);
@@ -38,7 +38,7 @@ void updateDose()
     cumulativeDose += (sum / MA_SIZE);
 }
 
-// ---------------- PULSE ENGINE ----------------
+//  PULSE ENGINE 
 void startPulse(uint16_t duration, uint8_t power)
 {
     pulseActive = true;
@@ -62,7 +62,7 @@ void updatePulseEngine()
     }
 }
 
-// ---------------- STATES ----------------
+//  STATES 
 void handlePreparingState()
 {
     if (millis() - stateStartTime >= waitDuration)
@@ -123,7 +123,7 @@ void handleAcquiringState(bool xrayEnabled, bool geoMoving, uint8_t examType)
     }
 }
 
-// ---------------- STATE MACHINE ----------------
+//  STATE MACHINE 
 void handleStateMachine(bool xrayEnabled, bool geoMoving, uint8_t examType)
 {
     switch (currentState)
@@ -145,7 +145,7 @@ void handleStateMachine(bool xrayEnabled, bool geoMoving, uint8_t examType)
     }
 }
 
-// ---------------- I2C ----------------
+//  I2C 
 void processI2CReceive(int howMany)
 {
     while (Wire.available())
@@ -184,7 +184,7 @@ void processI2CRequest()
     Wire.write(reg_status);
 }
 
-// ---------------- SETUP ----------------
+//  SETUP 
 void setup()
 {
     Wire.begin(XRAY_I2C_ADDRESS);
@@ -192,7 +192,7 @@ void setup()
     Wire.onRequest(processI2CRequest);
 }
 
-// ---------------- LOOP ----------------
+//  LOOP 
 void loop()
 {
     bool xrayEnabled = (I2C_readRegister(GEO_I2C_ADDRESS, REG_STATUS) & 0x01);

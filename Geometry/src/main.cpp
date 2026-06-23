@@ -1,6 +1,6 @@
 #include "geometry_internal.h"
 
-// ── Global variables ──────────────────────────────────────────────────────────
+//  Global variables 
 volatile uint8_t registers[GEO_REG_COUNT];
 volatile uint8_t regPointer = 0;
 
@@ -18,7 +18,7 @@ uint32_t      motorTotalSec    = 0;
 uint8_t       motorPriorityOwner = MOTOR_OWNER_NONE;
 
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+//  Helpers 
 
 uint8_t examTypeToI2C(EXAMINATION_TYPES t)
 {
@@ -80,7 +80,7 @@ void driveMotor(uint8_t speed)
 }
 
 
-// ── I2C handlers ──────────────────────────────────────────────────────────────
+//  I2C handlers 
 
 void onReceive(int numBytes)
 {
@@ -156,7 +156,7 @@ void onRequest()
 }
 
 
-// ── State handlers ────────────────────────────────────────────────────────────
+//  State handlers 
 
 void handlePreparingState()
 {
@@ -253,7 +253,7 @@ void handleMotorControl()
 }
 
 
-// ── Setup & Loop ──────────────────────────────────────────────────────────────
+//  Setup & Loop 
 
 void setup()
 {
@@ -276,7 +276,7 @@ void setup()
 
     randomSeed(analogRead(A1));
 }
-
+    
 void loop()
 {
     handlePreparingState();
